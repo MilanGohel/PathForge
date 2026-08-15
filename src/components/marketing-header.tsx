@@ -29,7 +29,7 @@ export function MarketingHeader() {
           </Link>
           <Link
             href="/login"
-            className="ml-1 inline-flex h-8 items-center rounded-md bg-primary px-3 text-xs font-semibold text-primary-foreground shadow-sm hover:bg-primary-hover"
+            className="ml-1 inline-flex h-8 items-center rounded-md bg-primary px-3 text-xs font-semibold text-white shadow-sm hover:bg-primary-hover"
           >
             Start learning
           </Link>

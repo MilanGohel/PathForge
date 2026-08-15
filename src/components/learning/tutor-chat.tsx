@@ -102,7 +102,7 @@ export function TutorChat({
             key={i}
             className={`max-w-[90%] rounded-xl px-3 py-2 text-sm ${
               m.role === "user"
-                ? "ml-auto bg-primary text-primary-foreground"
+                ? "ml-auto bg-primary text-white"
                 : "bg-muted-bg"
             }`}
           >

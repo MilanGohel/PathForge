@@ -11,7 +11,7 @@ export function BrandMark({
   return (
     <span
       className={cn(
-        "inline-flex items-center justify-center rounded-lg bg-primary font-semibold text-primary-foreground",
+        "inline-flex items-center justify-center rounded-lg bg-primary font-semibold text-white",
         dim,
         className,
       )}

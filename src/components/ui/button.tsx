@@ -7,15 +7,15 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
+        // Explicit text-white: primary-foreground token can fail to win over body color
         default:
-          "bg-primary text-primary-foreground shadow-sm hover:bg-primary-hover",
+          "bg-primary text-white shadow-sm hover:bg-primary-hover hover:text-white",
         secondary:
           "border border-border bg-muted-bg text-foreground hover:bg-border/60",
         outline:
           "border border-border bg-card text-foreground shadow-sm hover:bg-muted-bg",
         ghost: "text-foreground hover:bg-muted-bg",
-        danger:
-          "bg-danger text-white shadow-sm hover:opacity-90",
+        danger: "bg-danger text-white shadow-sm hover:opacity-90 hover:text-white",
       },
       size: {
         default: "h-10 px-4 py-2",

@@ -101,7 +101,7 @@ export default async function StagePage({
                     </span>
                     <Link
                       href={`/paths/${pathId}/modules/${m.id}`}
-                      className="inline-flex h-9 items-center rounded-lg bg-primary px-3 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary-hover"
+                      className="inline-flex h-9 items-center rounded-lg bg-primary px-3 text-sm font-semibold text-white shadow-sm hover:bg-primary-hover"
                     >
                       Open module
                     </Link>
