@@ -72,7 +72,7 @@ export default async function DashboardPage() {
         </div>
         <Link
           href="/paths/new"
-          className="inline-flex h-10 items-center rounded-lg bg-primary px-4 text-sm font-semibold text-white shadow-sm hover:bg-primary-hover"
+          className="inline-flex h-10 items-center rounded-md bg-primary px-4 text-sm font-semibold text-white shadow-sm hover:bg-primary-hover"
         >
           New path
         </Link>
@@ -115,7 +115,7 @@ export default async function DashboardPage() {
                 </p>
                 <Link
                   href={`/paths/${active.id}/modules/${today.id}`}
-                  className="mt-3 inline-flex h-9 items-center rounded-lg bg-primary px-3 text-sm font-semibold text-white shadow-sm hover:bg-primary-hover"
+                  className="mt-3 inline-flex h-9 items-center rounded-md bg-primary px-3 text-sm font-semibold text-white shadow-sm hover:bg-primary-hover"
                 >
                   Continue
                 </Link>
@@ -155,7 +155,7 @@ export default async function DashboardPage() {
           <CardContent className="flex flex-wrap gap-3">
             <Link
               href="/paths/new?pack=ai-engineering"
-              className="inline-flex h-10 items-center rounded-lg bg-primary px-4 text-sm font-semibold text-white shadow-sm hover:bg-primary-hover"
+              className="inline-flex h-10 items-center rounded-md bg-primary px-4 text-sm font-semibold text-white shadow-sm hover:bg-primary-hover"
             >
               Start AI Engineering
             </Link>

@@ -187,7 +187,7 @@ export default function HomePage() {
             <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
               <Link
                 href="/login"
-                className="inline-flex h-12 items-center rounded-xl bg-primary px-6 text-base font-semibold text-white shadow-sm hover:bg-primary-hover"
+                className="inline-flex h-12 items-center rounded-md bg-primary px-6 text-base font-semibold text-white shadow-sm hover:bg-primary-hover"
               >
                 Start learning
               </Link>
@@ -320,7 +320,7 @@ export default function HomePage() {
                 <CardContent>
                   <Link
                     href={`/paths/new?pack=${pack.slug}`}
-                    className="inline-flex h-10 items-center rounded-lg bg-primary px-4 text-sm font-semibold text-white shadow-sm hover:bg-primary-hover"
+                    className="inline-flex h-10 items-center rounded-md bg-primary px-4 text-sm font-semibold text-white shadow-sm hover:bg-primary-hover"
                   >
                     Start {pack.title}
                   </Link>
@@ -374,7 +374,7 @@ export default function HomePage() {
           </p>
           <Link
             href="/login"
-            className="mt-8 inline-flex h-12 items-center rounded-xl bg-primary px-6 text-base font-semibold text-white shadow-sm hover:bg-primary-hover"
+            className="mt-8 inline-flex h-12 items-center rounded-md bg-primary px-6 text-base font-semibold text-white shadow-sm hover:bg-primary-hover"
           >
             Start learning
           </Link>

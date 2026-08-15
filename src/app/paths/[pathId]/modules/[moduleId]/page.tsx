@@ -141,7 +141,7 @@ export default async function ModulePage({
 
       {mod.l2_status === "ready" ? (
         <>
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <CompleteButton
               moduleId={moduleId}
               completed={Boolean(mod.completed_at)}

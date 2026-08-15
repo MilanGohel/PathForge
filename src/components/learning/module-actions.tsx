@@ -43,10 +43,9 @@ export function RegenerateModuleButton({ moduleId }: { moduleId: string }) {
   const [error, setError] = useState<string | null>(null);
 
   return (
-    <div className="flex flex-col items-start gap-1">
+    <div className="inline-flex flex-col items-stretch gap-1">
       <Button
         variant="outline"
-        size="sm"
         disabled={pending}
         onClick={() => {
           setError(null);
