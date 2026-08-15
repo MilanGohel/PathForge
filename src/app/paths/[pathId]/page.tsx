@@ -147,7 +147,7 @@ export default async function PathPage({
                       </div>
                       <Link
                         href={`/paths/${pathId}/stages/${stage.id}`}
-                        className="inline-flex h-9 items-center rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground hover:bg-primary-hover"
+                        className="inline-flex h-9 items-center rounded-lg bg-primary px-3 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary-hover"
                       >
                         Open stage
                       </Link>

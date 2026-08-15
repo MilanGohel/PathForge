@@ -16,8 +16,9 @@
   --border: #e4e4e7;
   --card: #ffffff;
   --card-foreground: #0a0a0a;
-  --primary: #0d9488;
-  --primary-hover: #0f766e;
+  /* Solid CTAs: deep teal + white label (AA contrast). Links use same primary. */
+  --primary: #0f766e;
+  --primary-hover: #115e59;
   --primary-foreground: #ffffff;
   --primary-soft: #ccfbf1;
   --primary-soft-fg: #115e59;
@@ -50,12 +51,13 @@ html.dark {
   --border: #27272a;
   --card: #0c0c0e;
   --card-foreground: #fafafa;
-  --primary: #2dd4bf;
-  --primary-hover: #5eead4;
-  --primary-foreground: #042f2e;
+  /* Deeper fill so white label stays crisp; soft tokens stay bright for badges/links accents */
+  --primary: #0d9488;
+  --primary-hover: #14b8a6;
+  --primary-foreground: #ffffff;
   --primary-soft: #134e4a;
-  --primary-soft-fg: #99f6e4;
-  --danger: #f87171;
+  --primary-soft-fg: #5eead4;
+  --danger: #ef4444;
   --danger-bg: #450a0a66;
   --danger-fg: #fecaca;
   --danger-border: #7f1d1d;
@@ -85,12 +87,12 @@ html.dark {
     --border: #27272a;
     --card: #0c0c0e;
     --card-foreground: #fafafa;
-    --primary: #2dd4bf;
-    --primary-hover: #5eead4;
-    --primary-foreground: #042f2e;
+    --primary: #0d9488;
+    --primary-hover: #14b8a6;
+    --primary-foreground: #ffffff;
     --primary-soft: #134e4a;
-    --primary-soft-fg: #99f6e4;
-    --danger: #f87171;
+    --primary-soft-fg: #5eead4;
+    --danger: #ef4444;
     --danger-bg: #450a0a66;
     --danger-fg: #fecaca;
     --danger-border: #7f1d1d;

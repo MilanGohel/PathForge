@@ -12,7 +12,7 @@ export function Badge({
       className={cn(
         "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
         variant === "accent" && "bg-primary-soft text-primary-soft-fg",
-        variant === "neutral" && "bg-muted-bg text-muted",
+        variant === "neutral" && "bg-muted-bg text-foreground/80",
         variant === "success" && "bg-success-bg text-success-fg",
         variant === "warning" && "bg-warning-bg text-warning-fg",
         className,
