@@ -154,7 +154,7 @@ a {
   font-family: var(--font-display);
 }
 
-/* Lesson prose measure helpers */
+/* Lesson prose fills the centered reading column */
 .lesson-mdx {
-  max-width: 42rem;
+  max-width: none;
 }

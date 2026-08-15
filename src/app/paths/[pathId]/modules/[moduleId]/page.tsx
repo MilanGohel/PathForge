@@ -112,8 +112,13 @@ export default async function ModulePage({
   const toc = !legacy && mdx.trim() ? extractLessonToc(mdx) : [];
 
   return (
-    <div className="mx-auto max-w-5xl space-y-8 px-4 py-8 sm:py-10">
-      <div className="max-w-3xl">
+    /*
+      Reading column is always max-w-3xl and centered.
+      Desktop TOC is absolutely positioned in the right margin
+      (left-full of the column) so it never pushes content left.
+    */
+    <div className="mx-auto max-w-3xl space-y-8 px-4 py-8 sm:py-10">
+      <div>
         <Link
           href={`/paths/${pathId}/stages/${stage.id}`}
           className="text-sm text-muted hover:text-foreground"
@@ -128,17 +133,15 @@ export default async function ModulePage({
         <p className="mt-1 text-xs text-muted">{formatMinutes(mod.est_minutes)}</p>
       </div>
 
-      <div className="max-w-3xl">
-        <EnsureL2 moduleId={moduleId} status={mod.l2_status} />
-      </div>
+      <EnsureL2 moduleId={moduleId} status={mod.l2_status} />
 
       {mod.l2_status === "error" ? (
-        <p className="max-w-3xl text-sm text-danger-fg">{mod.error_message}</p>
+        <p className="text-sm text-danger-fg">{mod.error_message}</p>
       ) : null}
 
       {mod.l2_status === "ready" ? (
         <>
-          <div className="flex max-w-3xl flex-wrap gap-3">
+          <div className="flex flex-wrap gap-3">
             <CompleteButton
               moduleId={moduleId}
               completed={Boolean(mod.completed_at)}
@@ -147,7 +150,7 @@ export default async function ModulePage({
           </div>
 
           {legacy ? (
-            <div className="max-w-3xl rounded-xl border border-warning-border bg-warning-bg px-4 py-3 text-sm text-warning-fg">
+            <div className="rounded-xl border border-warning-border bg-warning-bg px-4 py-3 text-sm text-warning-fg">
               <p className="font-medium">Old short-card format</p>
               <p className="mt-1 opacity-90">
                 This lesson was generated before full MDX teaching content. Hit{" "}
@@ -157,23 +160,25 @@ export default async function ModulePage({
             </div>
           ) : null}
 
-          {/* Lesson + TOC */}
           <section className="space-y-4">
-            <h2 className="max-w-3xl text-lg font-semibold tracking-tight">
-              Lesson
-            </h2>
+            <h2 className="text-lg font-semibold tracking-tight">Lesson</h2>
+
             {mdx.trim() ? (
-              <div className="lg:grid lg:grid-cols-[minmax(0,42rem)_14rem] lg:gap-10">
-                <div className="min-w-0">
-                  {toc.length > 0 ? (
-                    <div className="mb-4 lg:hidden">
-                      <LessonTocNav entries={toc} mobileOnly />
-                    </div>
-                  ) : null}
-                  <LessonBody source={mdx} toc={toc} />
-                </div>
+              <div className="relative">
                 {toc.length > 0 ? (
-                  <aside className="relative hidden min-h-full lg:block">
+                  <div className="mb-4 xl:hidden">
+                    <LessonTocNav entries={toc} mobileOnly />
+                  </div>
+                ) : null}
+
+                <LessonBody source={mdx} toc={toc} />
+
+                {/*
+                  Margin rail: sits to the right of the centered column.
+                  Requires ~ max-w-3xl + gap + TOC width of viewport (≥ ~72rem).
+                */}
+                {toc.length > 0 ? (
+                  <aside className="absolute top-0 left-[calc(100%+2.5rem)] hidden w-52 xl:block">
                     <div className="sticky top-20">
                       <LessonTocNav entries={toc} desktopOnly />
                     </div>
@@ -181,7 +186,7 @@ export default async function ModulePage({
                 ) : null}
               </div>
             ) : legacy ? (
-              <div className="max-w-3xl space-y-4">
+              <div className="space-y-4">
                 {cards.map((card) => (
                   <Card key={card.id}>
                     <CardHeader>
@@ -203,7 +208,7 @@ export default async function ModulePage({
             )}
           </section>
 
-          <section className="max-w-3xl space-y-3">
+          <section className="space-y-3">
             <h2 className="text-lg font-semibold tracking-tight">Go deeper</h2>
             <p className="text-sm text-muted">
               Optional — the lesson above should stand on its own. At most a few
@@ -240,22 +245,20 @@ export default async function ModulePage({
             )}
           </section>
 
-          <div className="max-w-3xl">
-            <QuizBlock
-              items={(quizItems ?? []).map((q) => ({
-                id: q.id,
-                prompt: q.prompt,
-                choices: (q.choices as string[]) ?? [],
-              }))}
-            />
-          </div>
+          <QuizBlock
+            items={(quizItems ?? []).map((q) => ({
+              id: q.id,
+              prompt: q.prompt,
+              choices: (q.choices as string[]) ?? [],
+            }))}
+          />
 
-          <section className="max-w-3xl space-y-3">
+          <section className="space-y-3">
             <h2 className="text-lg font-semibold tracking-tight">Your notes</h2>
             <NotesEditor moduleId={moduleId} initial={note?.body ?? ""} />
           </section>
 
-          <section className="max-w-3xl space-y-3">
+          <section className="space-y-3">
             <h2 className="text-lg font-semibold tracking-tight">Tutor</h2>
             <TutorChat moduleId={moduleId} initialMessages={initialMessages} />
           </section>
