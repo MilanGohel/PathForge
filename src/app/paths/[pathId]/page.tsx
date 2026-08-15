@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { requireUser } from "@/lib/supabase/server";
-import { formatHours } from "@/lib/utils";
+import { formatHours, formatMinutes } from "@/lib/utils";
+import { presentProgressSummary } from "@/lib/learning/progress-summary";
+import { Breadcrumbs } from "@/components/breadcrumbs";
+import { ExportNotesButton } from "@/components/learning/export-notes-button";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -44,42 +47,80 @@ export default async function PathPage({
     stageIds.length > 0
       ? await supabase
           .from("modules")
-          .select("id, stage_id, completed_at")
+          .select("id, stage_id, completed_at, est_minutes")
           .in("stage_id", stageIds)
       : {
           data: [] as Array<{
             id: string;
             stage_id: string;
             completed_at: string | null;
+            est_minutes: number | null;
           }>,
         };
 
-  const completedByStage = new Map<string, { done: number; total: number }>();
-  for (const m of modules ?? []) {
-    const cur = completedByStage.get(m.stage_id) ?? { done: 0, total: 0 };
-    cur.total += 1;
-    if (m.completed_at) cur.done += 1;
-    completedByStage.set(m.stage_id, cur);
+  const overall = presentProgressSummary(modules ?? []);
+  const completedByStage = new Map<
+    string,
+    ReturnType<typeof presentProgressSummary>
+  >();
+  for (const stage of stages ?? []) {
+    const stageMods = (modules ?? []).filter((m) => m.stage_id === stage.id);
+    completedByStage.set(stage.id, presentProgressSummary(stageMods));
   }
+
+  const pathTitle = path.title ?? path.topic;
 
   return (
     <div className="mx-auto max-w-3xl space-y-8 px-4 py-8 sm:py-10">
       <div>
-        <Link
-          href="/dashboard"
-          className="text-sm text-muted hover:text-foreground"
-        >
-          ← Dashboard
-        </Link>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight">
-          {path.title ?? path.topic}
-        </h1>
-        <p className="mt-2 text-muted">{path.summary ?? path.goal}</p>
+        <Breadcrumbs
+          items={[
+            { label: "Dashboard", href: "/dashboard" },
+            { label: pathTitle },
+          ]}
+        />
+        <div className="mt-3 flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1 className="text-3xl font-semibold tracking-tight">
+              {pathTitle}
+            </h1>
+            <p className="mt-2 text-muted">{path.summary ?? path.goal}</p>
+          </div>
+          <ExportNotesButton pathId={pathId} />
+        </div>
         <div className="mt-3 flex flex-wrap gap-2">
           <Badge>~{formatHours(Number(path.est_hours))}</Badge>
           <Badge variant="neutral">{path.hours_per_week}h/week</Badge>
-          {path.pack_slug ? <Badge variant="neutral">{path.pack_slug}</Badge> : null}
+          {path.pack_slug ? (
+            <Badge variant="neutral">{path.pack_slug}</Badge>
+          ) : null}
+          {overall.total > 0 ? (
+            <Badge variant="neutral">
+              {overall.percent}% · {overall.done}/{overall.total}
+            </Badge>
+          ) : null}
         </div>
+        {overall.total > 0 ? (
+          <div className="mt-4 space-y-1">
+            <div
+              className="h-2 overflow-hidden rounded-full bg-muted-bg"
+              aria-hidden
+            >
+              <div
+                className="h-full rounded-full bg-primary"
+                style={{ width: `${overall.percent}%` }}
+              />
+            </div>
+            {overall.remainingMinutes > 0 ? (
+              <p className="text-xs text-muted">
+                ~{formatMinutes(overall.remainingMinutes)} left in generated
+                modules
+              </p>
+            ) : overall.done === overall.total ? (
+              <p className="text-xs text-muted">All generated modules complete</p>
+            ) : null}
+          </div>
+        ) : null}
       </div>
 
       {path.domain_alert ? (
@@ -135,9 +176,12 @@ export default async function PathPage({
                         {stage.est_hours != null
                           ? `~${formatHours(Number(stage.est_hours))}`
                           : null}
-                        {prog ? (
+                        {prog && prog.total > 0 ? (
                           <span>
-                            · {prog.done}/{prog.total} modules done
+                            · {prog.done}/{prog.total} done ({prog.percent}%)
+                            {prog.remainingMinutes > 0
+                              ? ` · ~${formatMinutes(prog.remainingMinutes)} left`
+                              : ""}
                           </span>
                         ) : ready ? (
                           <span>· modules ready</span>

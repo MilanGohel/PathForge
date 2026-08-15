@@ -15,16 +15,19 @@ export function AppHeader({ email }: { email: string | null }) {
           <BrandMark size="sm" />
           Pathforge
         </Link>
-        <nav className="flex items-center gap-1 sm:gap-2">
+        <nav
+          className="flex items-center gap-1 sm:gap-2"
+          aria-label="App"
+        >
           <Link
             href="/dashboard"
-            className="hidden rounded-lg px-3 py-2 text-sm text-muted hover:bg-muted-bg hover:text-foreground sm:inline"
+            className="rounded-lg px-2 py-2 text-sm text-muted hover:bg-muted-bg hover:text-foreground sm:px-3"
           >
             Dashboard
           </Link>
           <Link
             href="/paths/new"
-            className="rounded-lg px-3 py-2 text-sm text-muted hover:bg-muted-bg hover:text-foreground"
+            className="rounded-lg px-2 py-2 text-sm text-muted hover:bg-muted-bg hover:text-foreground sm:px-3"
           >
             New path
           </Link>

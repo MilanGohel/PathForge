@@ -36,13 +36,13 @@ export function EnsureL1({
 
   if (status === "ready" && !pending && !error) return null;
 
-  if (error) {
+  if (error || status === "error") {
     return (
       <GenerationStatus
         phase="error"
         flow="l1"
-        errorMessage={error}
-        onRetry={() => run(true)}
+        errorMessage={error ?? "Stage generation failed"}
+        onRetry={() => run(status === "error" || Boolean(error))}
       />
     );
   }

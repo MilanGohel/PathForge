@@ -2,6 +2,8 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { requireUser } from "@/lib/supabase/server";
 import { formatMinutes } from "@/lib/utils";
+import { presentProgressSummary } from "@/lib/learning/progress-summary";
+import { Breadcrumbs } from "@/components/breadcrumbs";
 import { EnsureL1 } from "@/components/learning/ensure-l1";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -42,19 +44,46 @@ export default async function StagePage({
     .eq("stage_id", stageId)
     .order("position");
 
+  const progress = presentProgressSummary(modules ?? []);
+  const pathTitle = path.title ?? path.topic;
+
   return (
     <div className="mx-auto max-w-3xl space-y-8 px-4 py-8 sm:py-10">
       <div>
-        <Link
-          href={`/paths/${pathId}`}
-          className="text-sm text-muted hover:text-foreground"
-        >
-          ← {path.title ?? path.topic}
-        </Link>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight">
+        <Breadcrumbs
+          items={[
+            { label: "Dashboard", href: "/dashboard" },
+            { label: pathTitle, href: `/paths/${pathId}` },
+            { label: stage.title },
+          ]}
+        />
+        <h1 className="mt-3 text-3xl font-semibold tracking-tight">
           {stage.title}
         </h1>
         <p className="mt-2 text-muted">{stage.summary}</p>
+        {progress.total > 0 ? (
+          <div className="mt-4 space-y-1">
+            <div className="flex flex-wrap gap-2 text-xs text-muted">
+              <span>
+                {progress.done}/{progress.total} modules · {progress.percent}%
+              </span>
+              {progress.remainingMinutes > 0 ? (
+                <span>
+                  · ~{formatMinutes(progress.remainingMinutes)} remaining
+                </span>
+              ) : null}
+            </div>
+            <div
+              className="h-2 overflow-hidden rounded-full bg-muted-bg"
+              aria-hidden
+            >
+              <div
+                className="h-full rounded-full bg-primary"
+                style={{ width: `${progress.percent}%` }}
+              />
+            </div>
+          </div>
+        ) : null}
       </div>
 
       <EnsureL1 stageId={stageId} status={stage.l1_status} />
@@ -89,6 +118,8 @@ export default async function StagePage({
                       ) : null}
                       {m.l2_status === "ready" ? (
                         <Badge variant="neutral">Lesson ready</Badge>
+                      ) : m.l2_status === "error" ? (
+                        <Badge variant="warning">Error</Badge>
                       ) : (
                         <Badge variant="neutral">Generate on open</Badge>
                       )}

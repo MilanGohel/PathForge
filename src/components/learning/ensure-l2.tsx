@@ -36,13 +36,13 @@ export function EnsureL2({
 
   if (status === "ready" && !pending && !error) return null;
 
-  if (error) {
+  if (error || status === "error") {
     return (
       <GenerationStatus
         phase="error"
         flow="l2"
-        errorMessage={error}
-        onRetry={() => run(true)}
+        errorMessage={error ?? "Lesson generation failed"}
+        onRetry={() => run(status === "error" || Boolean(error))}
       />
     );
   }

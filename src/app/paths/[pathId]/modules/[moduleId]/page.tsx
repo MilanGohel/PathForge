@@ -1,9 +1,16 @@
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { requireUser } from "@/lib/supabase/server";
 import { formatMinutes } from "@/lib/utils";
-import { isLegacyLesson } from "@/lib/learning/lesson-format";
+import {
+  isLegacyLesson,
+  presentSkeletonCompleteness,
+} from "@/lib/learning/lesson-format";
 import { extractLessonToc } from "@/lib/learning/lesson-toc";
+import {
+  presentPathNavigation,
+  type NavModule,
+} from "@/lib/learning/path-navigation";
+import { Breadcrumbs } from "@/components/breadcrumbs";
 import { EnsureL2 } from "@/components/learning/ensure-l2";
 import { LessonBody } from "@/components/learning/lesson-body";
 import { LessonTocNav } from "@/components/learning/lesson-toc";
@@ -13,6 +20,12 @@ import {
   QuizBlock,
   RegenerateModuleButton,
 } from "@/components/learning/module-actions";
+import {
+  ModulePrevNext,
+  PostCompleteNudge,
+} from "@/components/learning/module-nav";
+import { ModuleShell } from "@/components/learning/reading-chrome";
+import { ResourceList } from "@/components/learning/resource-list";
 import { TutorChat } from "@/components/learning/tutor-chat";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -44,6 +57,7 @@ export default async function ModulePage({
   const stage = mod.stages as {
     id: string;
     title: string;
+    position: number;
     paths: {
       id: string;
       user_id: string;
@@ -55,6 +69,48 @@ export default async function ModulePage({
   if (stage.paths.user_id !== user.id || stage.paths.id !== pathId) {
     notFound();
   }
+
+  const { data: allStages } = await supabase
+    .from("stages")
+    .select("id, title, position")
+    .eq("path_id", pathId)
+    .order("position");
+
+  const stageIds = (allStages ?? []).map((s) => s.id);
+  const { data: allModules } =
+    stageIds.length > 0
+      ? await supabase
+          .from("modules")
+          .select("id, title, position, completed_at, stage_id")
+          .in("stage_id", stageIds)
+      : { data: [] as Array<{
+          id: string;
+          title: string;
+          position: number;
+          completed_at: string | null;
+          stage_id: string;
+        }> };
+
+  const stageById = new Map((allStages ?? []).map((s) => [s.id, s]));
+  const navModules: NavModule[] = (allModules ?? [])
+    .map((m) => {
+      const st = stageById.get(m.stage_id);
+      if (!st) return null;
+      return {
+        id: m.id,
+        title: m.title,
+        position: m.position,
+        completed_at: m.completed_at,
+        stage: {
+          id: st.id,
+          title: st.title,
+          position: st.position,
+        },
+      };
+    })
+    .filter(Boolean) as NavModule[];
+
+  const nav = presentPathNavigation(navModules, moduleId);
 
   const { data: lesson } = await supabase
     .from("lessons")
@@ -110,27 +166,125 @@ export default async function ModulePage({
   const cards = (lesson?.cards as LessonCard[] | null) ?? [];
   const legacy = isLegacyLesson({ mdx, cards });
   const toc = !legacy && mdx.trim() ? extractLessonToc(mdx) : [];
+  const skeleton =
+    !legacy && mdx.trim() ? presentSkeletonCompleteness(mdx) : null;
+  const pathTitle = stage.paths.title ?? stage.paths.topic;
+  const completed = Boolean(mod.completed_at);
+  const tocIds = toc.map((t) => t.id);
+
+  const lessonSection = (
+    <section className="space-y-4">
+      <h2 className="text-lg font-semibold tracking-tight">Lesson</h2>
+
+      {mdx.trim() ? (
+        <div className="relative">
+          {toc.length > 0 ? (
+            <div className="mb-4 xl:hidden">
+              <LessonTocNav entries={toc} mobileOnly />
+            </div>
+          ) : null}
+
+          <LessonBody source={mdx} toc={toc} />
+
+          {toc.length > 0 ? (
+            <aside className="absolute top-0 left-[calc(100%+2.5rem)] hidden w-52 xl:block">
+              <div className="sticky top-20">
+                <LessonTocNav entries={toc} desktopOnly />
+              </div>
+            </aside>
+          ) : null}
+        </div>
+      ) : legacy ? (
+        <div className="space-y-4">
+          {cards.map((card) => (
+            <Card key={card.id}>
+              <CardHeader>
+                <CardDescription className="uppercase tracking-wide">
+                  {card.kind.replaceAll("_", " ")}
+                </CardDescription>
+                <CardTitle className="text-base">{card.title}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/90">
+                  {card.body}
+                </p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <p className="text-sm text-muted">Lesson body missing.</p>
+      )}
+    </section>
+  );
+
+  const secondary = (
+    <>
+      <section className="space-y-3">
+        <h2 className="text-lg font-semibold tracking-tight">Go deeper</h2>
+        <p className="text-sm text-muted">
+          Optional — the lesson above should stand on its own. At most a few
+          curated links.
+        </p>
+        <ResourceList
+          resources={(resources ?? []).map((r) => ({
+            id: r.id,
+            title: r.title,
+            url: r.url,
+            kind: r.kind,
+            provider: r.provider,
+            snippet: r.snippet,
+          }))}
+        />
+      </section>
+
+      <QuizBlock
+        items={(quizItems ?? []).map((q) => ({
+          id: q.id,
+          prompt: q.prompt,
+          choices: (q.choices as string[]) ?? [],
+        }))}
+      />
+
+      <section className="space-y-3">
+        <h2 className="text-lg font-semibold tracking-tight">Your notes</h2>
+        <NotesEditor moduleId={moduleId} initial={note?.body ?? ""} />
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-lg font-semibold tracking-tight">Tutor</h2>
+        <TutorChat moduleId={moduleId} initialMessages={initialMessages} />
+      </section>
+    </>
+  );
 
   return (
-    /*
-      Reading column is always max-w-3xl and centered.
-      Desktop TOC is absolutely positioned in the right margin
-      (left-full of the column) so it never pushes content left.
-    */
     <div className="mx-auto max-w-3xl space-y-8 px-4 py-8 sm:py-10">
       <div>
-        <Link
-          href={`/paths/${pathId}/stages/${stage.id}`}
-          className="text-sm text-muted hover:text-foreground"
-        >
-          ← {stage.title}
-        </Link>
-        <div className="mt-2 flex flex-wrap items-center gap-2">
+        <Breadcrumbs
+          items={[
+            { label: "Dashboard", href: "/dashboard" },
+            { label: pathTitle, href: `/paths/${pathId}` },
+            {
+              label: stage.title,
+              href: `/paths/${pathId}/stages/${stage.id}`,
+            },
+            { label: mod.title },
+          ]}
+        />
+        <div className="mt-3 flex flex-wrap items-center gap-2">
           <h1 className="text-3xl font-semibold tracking-tight">{mod.title}</h1>
-          {mod.completed_at ? <Badge variant="success">Complete</Badge> : null}
+          {completed ? <Badge variant="success">Complete</Badge> : null}
+          {nav.total > 0 && nav.index >= 0 ? (
+            <Badge variant="neutral">
+              {nav.index + 1}/{nav.total}
+            </Badge>
+          ) : null}
         </div>
         <p className="mt-2 text-muted">{mod.blurb}</p>
-        <p className="mt-1 text-xs text-muted">{formatMinutes(mod.est_minutes)}</p>
+        <p className="mt-1 text-xs text-muted">
+          {formatMinutes(mod.est_minutes)}
+        </p>
       </div>
 
       <EnsureL2 moduleId={moduleId} status={mod.l2_status} />
@@ -141,14 +295,6 @@ export default async function ModulePage({
 
       {mod.l2_status === "ready" ? (
         <>
-          <div className="flex flex-wrap items-center gap-3">
-            <CompleteButton
-              moduleId={moduleId}
-              completed={Boolean(mod.completed_at)}
-            />
-            <RegenerateModuleButton moduleId={moduleId} />
-          </div>
-
           {legacy ? (
             <div className="rounded-xl border border-warning-border bg-warning-bg px-4 py-3 text-sm text-warning-fg">
               <p className="font-medium">Old short-card format</p>
@@ -160,108 +306,36 @@ export default async function ModulePage({
             </div>
           ) : null}
 
-          <section className="space-y-4">
-            <h2 className="text-lg font-semibold tracking-tight">Lesson</h2>
-
-            {mdx.trim() ? (
-              <div className="relative">
-                {toc.length > 0 ? (
-                  <div className="mb-4 xl:hidden">
-                    <LessonTocNav entries={toc} mobileOnly />
-                  </div>
-                ) : null}
-
-                <LessonBody source={mdx} toc={toc} />
-
-                {/*
-                  Margin rail: sits to the right of the centered column.
-                  Requires ~ max-w-3xl + gap + TOC width of viewport (≥ ~72rem).
-                */}
-                {toc.length > 0 ? (
-                  <aside className="absolute top-0 left-[calc(100%+2.5rem)] hidden w-52 xl:block">
-                    <div className="sticky top-20">
-                      <LessonTocNav entries={toc} desktopOnly />
-                    </div>
-                  </aside>
-                ) : null}
-              </div>
-            ) : legacy ? (
-              <div className="space-y-4">
-                {cards.map((card) => (
-                  <Card key={card.id}>
-                    <CardHeader>
-                      <CardDescription className="uppercase tracking-wide">
-                        {card.kind.replaceAll("_", " ")}
-                      </CardDescription>
-                      <CardTitle className="text-base">{card.title}</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/90">
-                        {card.body}
-                      </p>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-muted">Lesson body missing.</p>
-            )}
-          </section>
-
-          <section className="space-y-3">
-            <h2 className="text-lg font-semibold tracking-tight">Go deeper</h2>
-            <p className="text-sm text-muted">
-              Optional — the lesson above should stand on its own. At most a few
-              curated links.
-            </p>
-            {(resources ?? []).length === 0 ? (
-              <p className="text-sm text-muted">
-                No external links for this module.
+          {skeleton && !skeleton.complete ? (
+            <div className="rounded-xl border border-warning-border bg-warning-bg px-4 py-3 text-sm text-warning-fg">
+              <p className="font-medium">Lesson may be incomplete</p>
+              <p className="mt-1 opacity-90">
+                Missing teaching sections: {skeleton.missingHeadings.join(", ")}
+                . Regenerate to restore the full skeleton.
               </p>
-            ) : (
-              <ul className="space-y-2">
-                {resources!.map((r) => (
-                  <li key={r.id}>
-                    <a
-                      href={r.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="block rounded-xl border border-border bg-card px-4 py-3 transition-colors hover:border-primary/40"
-                    >
-                      <p className="text-sm font-medium">{r.title}</p>
-                      <p className="text-xs text-muted">
-                        {r.kind}
-                        {r.provider ? ` · ${r.provider}` : ""}
-                      </p>
-                      {r.snippet ? (
-                        <p className="mt-1 line-clamp-2 text-xs text-muted">
-                          {r.snippet}
-                        </p>
-                      ) : null}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
+            </div>
+          ) : null}
 
-          <QuizBlock
-            items={(quizItems ?? []).map((q) => ({
-              id: q.id,
-              prompt: q.prompt,
-              choices: (q.choices as string[]) ?? [],
-            }))}
+          <PostCompleteNudge
+            pathId={pathId}
+            nav={nav}
+            completed={completed}
           />
 
-          <section className="space-y-3">
-            <h2 className="text-lg font-semibold tracking-tight">Your notes</h2>
-            <NotesEditor moduleId={moduleId} initial={note?.body ?? ""} />
-          </section>
-
-          <section className="space-y-3">
-            <h2 className="text-lg font-semibold tracking-tight">Tutor</h2>
-            <TutorChat moduleId={moduleId} initialMessages={initialMessages} />
-          </section>
+          <ModuleShell
+            moduleId={moduleId}
+            tocIds={tocIds}
+            hasLesson={Boolean(mdx.trim()) && !legacy}
+            toolbar={
+              <>
+                <CompleteButton moduleId={moduleId} completed={completed} />
+                <RegenerateModuleButton moduleId={moduleId} />
+              </>
+            }
+            lesson={lessonSection}
+            footerNav={<ModulePrevNext pathId={pathId} nav={nav} />}
+            secondary={secondary}
+          />
         </>
       ) : null}
     </div>

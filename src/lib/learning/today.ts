@@ -6,7 +6,14 @@ export type TodayModule = {
   stageTitle: string;
   stageId: string;
   pathId: string;
+  /** Honest rule explanation for UI */
+  reason: string;
+  /** start = first touch in path order sense; continue = some prior module done */
+  ctaKind: "start" | "continue";
 };
+
+export const TODAY_PICK_REASON =
+  "First incomplete module in path order" as const;
 
 /**
  * Rule engine: first incomplete module in path order (stage position, then module position).
@@ -35,6 +42,7 @@ export function pickTodayModule(
   });
   const next = sorted.find((m) => !m.completed_at);
   if (!next) return null;
+  const anyDone = sorted.some((m) => Boolean(m.completed_at));
   return {
     id: next.id,
     title: next.title,
@@ -43,5 +51,7 @@ export function pickTodayModule(
     stageTitle: next.stage.title,
     stageId: next.stage.id,
     pathId: next.stage.path_id,
+    reason: TODAY_PICK_REASON,
+    ctaKind: anyDone ? "continue" : "start",
   };
 }

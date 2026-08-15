@@ -20,6 +20,9 @@ const display = Newsreader({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
+  ),
   title: {
     default: "Pathforge — AI learning paths that teach",
     template: "%s · Pathforge",
@@ -32,12 +35,21 @@ export const metadata: Metadata = {
       "Generate a path, learn module-by-module with real lessons, and go deeper with curated resources.",
     type: "website",
     siteName: "Pathforge",
+    images: [
+      {
+        url: "/og.svg",
+        width: 1200,
+        height: 630,
+        alt: "Pathforge — AI learning paths that teach",
+      },
+    ],
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
     title: "Pathforge — AI learning paths that teach",
     description:
       "Personalized paths, teachable MDX lessons, and a grounded module tutor.",
+    images: ["/og.svg"],
   },
 };
 

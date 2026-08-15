@@ -43,6 +43,56 @@ export function isLegacyLesson(input: {
   return Array.isArray(cards) && cards.length > 0;
 }
 
+export type SkeletonCompleteness = {
+  complete: boolean;
+  missingHeadings: string[];
+};
+
+/**
+ * Check MDX for required teaching-skeleton H2 titles (presence, not order).
+ */
+export function presentSkeletonCompleteness(
+  mdx: string | null | undefined,
+): SkeletonCompleteness {
+  const source = (mdx ?? "").replace(/\r\n/g, "\n");
+  if (!source.trim()) {
+    return {
+      complete: false,
+      missingHeadings: [...LESSON_SKELETON_HEADINGS],
+    };
+  }
+
+  const found = new Set<string>();
+  let inFence = false;
+  for (const line of source.split("\n")) {
+    const fence = line.match(/^(\s*)(`{3,}|~{3,})/);
+    if (fence) {
+      inFence = !inFence;
+      continue;
+    }
+    if (inFence) continue;
+    const m = line.match(/^##\s+(?!#)(.+?)\s*#*\s*$/);
+    if (!m) continue;
+    const title = m[1]
+      .replace(/`([^`]+)`/g, "$1")
+      .replace(/\*\*([^*]+)\*\*/g, "$1")
+      .replace(/\*([^*]+)\*/g, "$1")
+      .replace(/\s+/g, " ")
+      .trim();
+    for (const required of LESSON_SKELETON_HEADINGS) {
+      if (title.toLowerCase() === required.toLowerCase()) {
+        found.add(required);
+      }
+    }
+  }
+
+  const missingHeadings = LESSON_SKELETON_HEADINGS.filter((h) => !found.has(h));
+  return {
+    complete: missingHeadings.length === 0,
+    missingHeadings: [...missingHeadings],
+  };
+}
+
 /** Strip dangerous MDX bits before compile; keep Callout/Steps tags. */
 export function sanitizeLessonMdx(source: string): string {
   let s = source.trim();

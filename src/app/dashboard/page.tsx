@@ -2,7 +2,12 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/supabase/server";
 import { pickTodayModule } from "@/lib/learning/today";
+import { presentProgressSummary } from "@/lib/learning/progress-summary";
+import { presentBudgetWarning } from "@/lib/learning/budget-warning";
+import { createSupabaseBudgetStore } from "@/lib/learning/budget-store";
+import { env } from "@/lib/env";
 import { formatHours, formatMinutes } from "@/lib/utils";
+import { BudgetBanner } from "@/components/learning/budget-banner";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -26,7 +31,7 @@ export default async function DashboardPage() {
   const active = paths?.find((p) => p.is_active) ?? paths?.[0] ?? null;
 
   let today: ReturnType<typeof pickTodayModule> = null;
-  let progress = { done: 0, total: 0 };
+  let progress = presentProgressSummary([]);
 
   if (active?.status === "ready") {
     const { data: stages } = await supabase
@@ -57,10 +62,21 @@ export default async function DashboardPage() {
           };
         }) ?? [];
 
-      progress.total = enriched.length;
-      progress.done = enriched.filter((m) => m.completed_at).length;
+      progress = presentProgressSummary(enriched);
       today = pickTodayModule(enriched);
     }
+  }
+
+  let budgetView: ReturnType<typeof presentBudgetWarning> | null = null;
+  try {
+    const store = createSupabaseBudgetStore(supabase);
+    const used = await store.countToday(user.id);
+    budgetView = presentBudgetWarning({
+      used,
+      limit: env.generationDailyBudget(),
+    });
+  } catch {
+    budgetView = null;
   }
 
   return (
@@ -77,6 +93,15 @@ export default async function DashboardPage() {
           New path
         </Link>
       </div>
+
+      {budgetView ? (
+        <BudgetBanner
+          level={budgetView.level}
+          used={budgetView.used}
+          limit={budgetView.limit}
+          remaining={budgetView.remaining}
+        />
+      ) : null}
 
       {active ? (
         <Card className="border-primary/25">
@@ -97,10 +122,27 @@ export default async function DashboardPage() {
             <div className="flex flex-wrap gap-4 text-sm text-muted">
               <span>~{formatHours(Number(active.est_hours))} total</span>
               <span>
-                {progress.done}/{progress.total || "—"} modules complete
+                {progress.done}/{progress.total || "—"} modules ·{" "}
+                {progress.percent}%
               </span>
+              {progress.remainingMinutes > 0 ? (
+                <span>
+                  ~{formatMinutes(progress.remainingMinutes)} remaining
+                </span>
+              ) : null}
               <span>{active.hours_per_week}h / week</span>
             </div>
+            {progress.total > 0 ? (
+              <div
+                className="h-2 overflow-hidden rounded-full bg-muted-bg"
+                aria-hidden
+              >
+                <div
+                  className="h-full rounded-full bg-primary transition-[width]"
+                  style={{ width: `${progress.percent}%` }}
+                />
+              </div>
+            ) : null}
             {today ? (
               <div className="rounded-xl border border-border bg-muted-bg/50 p-4">
                 <p className="text-xs font-medium uppercase tracking-wide text-muted">
@@ -113,11 +155,15 @@ export default async function DashboardPage() {
                     ? ` · ${formatMinutes(today.estMinutes)}`
                     : ""}
                 </p>
+                <p className="mt-1 text-xs text-muted">{today.reason}</p>
                 <Link
                   href={`/paths/${active.id}/modules/${today.id}`}
                   className="mt-3 inline-flex h-9 items-center rounded-md bg-primary px-3 text-sm font-semibold text-white shadow-sm hover:bg-primary-hover"
                 >
-                  Continue
+                  {today.ctaKind === "start" ? "Start" : "Continue"}
+                  {today.estMinutes
+                    ? ` · ${formatMinutes(today.estMinutes)}`
+                    : ""}
                 </Link>
               </div>
             ) : active.status === "ready" ? (

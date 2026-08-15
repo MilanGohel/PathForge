@@ -4,8 +4,12 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getPack } from "@/lib/packs/ai-engineering";
 import { createClient, requireUser } from "@/lib/supabase/server";
+import { env } from "@/lib/env";
 import { scoreDiagnostic } from "./diagnostic";
 import { BudgetExceededError } from "./generation";
+import { createSupabaseBudgetStore } from "./budget-store";
+import { presentBudgetWarning } from "./budget-warning";
+import { normalizeRegenerateDirection } from "./regenerate-direction";
 import { getLearningGeneration } from "./service";
 import type { DiagnosticAnswer, DiagnosticQuestion } from "@/types/domain";
 
@@ -57,6 +61,14 @@ export async function createPathDraft(input: {
 
   if (error || !data) {
     return { ok: false, error: error?.message ?? "Failed to create path" };
+  }
+
+  // Analytics is fail-open; dynamic import keeps edge bundles light if unused
+  try {
+    const { track } = await import("@/lib/analytics");
+    track("path_created", { pathId: data.id });
+  } catch {
+    /* ignore */
   }
 
   return { ok: true, data: { pathId: data.id } };
@@ -302,7 +314,7 @@ export async function ensureStageL1(
 
 export async function ensureModuleL2(
   moduleId: string,
-  opts?: { regenerate?: boolean },
+  opts?: { regenerate?: boolean; direction?: string | null },
 ): Promise<ActionResult> {
   const { supabase, user } = await ensureAuth();
 
@@ -335,6 +347,8 @@ export async function ensureModuleL2(
     return { ok: true, data: undefined };
   }
 
+  const direction = normalizeRegenerateDirection(opts?.direction);
+
   await supabase
     .from("modules")
     .update({ l2_status: "generating", error_message: null })
@@ -349,6 +363,7 @@ export async function ensureModuleL2(
       moduleTitle: mod.title,
       moduleBlurb: mod.blurb,
       estMinutes: mod.est_minutes,
+      direction,
     });
 
     if (opts?.regenerate) {
@@ -399,6 +414,13 @@ export async function ensureModuleL2(
       .from("modules")
       .update({ l2_status: "ready", error_message: null })
       .eq("id", moduleId);
+
+    try {
+      const { track } = await import("@/lib/analytics");
+      track("lesson_ready", { moduleId });
+    } catch {
+      /* ignore */
+    }
 
     const pathId = stage.paths.id;
     revalidatePath(`/paths/${pathId}/modules/${moduleId}`);
@@ -524,4 +546,117 @@ export async function signOut() {
   const supabase = await createClient();
   await supabase.auth.signOut();
   redirect("/");
+}
+
+/** Soft budget status for UI warnings (does not enforce). */
+export async function getGenerationBudgetStatus(): Promise<
+  ActionResult<{
+    used: number;
+    limit: number;
+    remaining: number;
+    level: "ok" | "warn" | "blocked";
+  }>
+> {
+  const { supabase, user } = await ensureAuth();
+  const store = createSupabaseBudgetStore(supabase);
+  const used = await store.countToday(user.id);
+  const limit = env.generationDailyBudget();
+  const view = presentBudgetWarning({ used, limit });
+  return { ok: true, data: view };
+}
+
+/** Export all notes for a path as markdown (owner only). */
+export async function exportPathNotesMarkdown(
+  pathId: string,
+): Promise<ActionResult<{ markdown: string; filename: string }>> {
+  const { supabase, user } = await ensureAuth();
+
+  const { data: path } = await supabase
+    .from("paths")
+    .select("id, title, topic, user_id")
+    .eq("id", pathId)
+    .eq("user_id", user.id)
+    .single();
+
+  if (!path) return { ok: false, error: "Path not found" };
+
+  const { data: stages } = await supabase
+    .from("stages")
+    .select("id, title, position")
+    .eq("path_id", pathId)
+    .order("position");
+
+  const stageIds = (stages ?? []).map((s) => s.id);
+  if (!stageIds.length) {
+    return {
+      ok: true,
+      data: {
+        markdown: `# Notes — ${path.title ?? path.topic}\n\n_No modules yet._\n`,
+        filename: "pathforge-notes.md",
+      },
+    };
+  }
+
+  const { data: modules } = await supabase
+    .from("modules")
+    .select("id, title, position, stage_id")
+    .in("stage_id", stageIds);
+
+  const { data: notes } = await supabase
+    .from("module_notes")
+    .select("module_id, body, updated_at")
+    .eq("user_id", user.id)
+    .in(
+      "module_id",
+      (modules ?? []).map((m) => m.id),
+    );
+
+  const noteByModule = new Map((notes ?? []).map((n) => [n.module_id, n]));
+  const stageById = new Map((stages ?? []).map((s) => [s.id, s]));
+
+  const sorted = [...(modules ?? [])].sort((a, b) => {
+    const sa = stageById.get(a.stage_id)?.position ?? 0;
+    const sb = stageById.get(b.stage_id)?.position ?? 0;
+    if (sa !== sb) return sa - sb;
+    return a.position - b.position;
+  });
+
+  const lines: string[] = [
+    `# Notes — ${path.title ?? path.topic}`,
+    "",
+    `_Exported from Pathforge_`,
+    "",
+  ];
+
+  let any = false;
+  for (const m of sorted) {
+    const note = noteByModule.get(m.id);
+    if (!note?.body?.trim()) continue;
+    any = true;
+    const st = stageById.get(m.stage_id);
+    lines.push(`## ${m.title}`);
+    if (st) lines.push(`*${st.title}*`);
+    lines.push("");
+    lines.push(note.body.trim());
+    lines.push("");
+  }
+
+  if (!any) {
+    lines.push("_No notes saved on this path yet._");
+    lines.push("");
+  }
+
+  const slug = (path.title ?? path.topic)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 40);
+
+  return {
+    ok: true,
+    data: {
+      markdown: lines.join("\n"),
+      filename: `pathforge-notes-${slug || "path"}.md`,
+    },
+  };
 }

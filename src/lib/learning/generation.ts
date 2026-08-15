@@ -47,6 +47,8 @@ export type ModelClient = {
     moduleTitle: string;
     moduleBlurb: string;
     estMinutes?: number | null;
+    /** Optional short regenerate guidance from the learner */
+    direction?: string;
   }): Promise<{
     mdx: string;
     quiz: L2Result["quiz"];
@@ -160,8 +162,12 @@ Rules:
       moduleTitle,
       moduleBlurb,
       estMinutes,
+      direction,
     }) {
       const gateway = getGateway();
+      const directionBlock = direction?.trim()
+        ? `\nLearner regenerate direction (honor if compatible with the skeleton; do not drop required H2s): ${direction.trim()}\n`
+        : "";
       const object = await generateStructured({
         model: gateway(strongModel()),
         schema: l2Schema,
@@ -174,7 +180,7 @@ Stage: ${stageTitle}
 Module: ${moduleTitle}
 Blurb: ${moduleBlurb}
 Suggested sitting time: ${estMinutes ?? 25} minutes (aim ~10–15 min focused read; do not write a thesis).
-
+${directionBlock}
 ${LESSON_SKELETON_PROMPT}
 
 Return JSON only:
@@ -321,6 +327,7 @@ export class LearningGeneration {
       moduleTitle: string;
       moduleBlurb: string;
       estMinutes?: number | null;
+      direction?: string;
     },
   ): Promise<L2Result> {
     let result!: L2Result;

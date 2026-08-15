@@ -1,6 +1,7 @@
 import type { ComponentPropsWithoutRef, ReactNode } from "react";
 import { slugifyHeading, type TocEntry } from "@/lib/learning/lesson-toc";
 import { cn } from "@/lib/utils";
+import { PreBlock } from "./code-block";
 
 function headingText(children: ReactNode): string {
   if (typeof children === "string") return children;
@@ -57,18 +58,6 @@ export function Steps({ children }: { children?: ReactNode }) {
   );
 }
 
-function Pre(props: ComponentPropsWithoutRef<"pre">) {
-  return (
-    <pre
-      {...props}
-      className={cn(
-        "my-4 overflow-x-auto rounded-xl border border-border bg-zinc-950 p-4 text-sm text-zinc-100",
-        props.className,
-      )}
-    />
-  );
-}
-
 function Code(props: ComponentPropsWithoutRef<"code">) {
   const isBlock = Boolean(props.className?.includes("language-"));
   if (isBlock) {
@@ -99,7 +88,7 @@ export function createLessonMdxComponents(toc?: TocEntry[]) {
   return {
     Callout,
     Steps,
-    pre: Pre,
+    pre: PreBlock,
     code: Code,
     h2: (props: ComponentPropsWithoutRef<"h2">) => {
       const text = headingText(props.children);
