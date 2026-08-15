@@ -11,8 +11,9 @@ Pathforge is an AI learning product: a learner states what they want to learn; t
 | **Path** | A full learning journey for one topic/goal owned by a user |
 | **Stage** | Ordered group of modules inside a path (e.g. "ML Fundamentals") |
 | **Module** | One learnable unit; contains a lesson, optional resources, optional quiz, notes, tutor thread |
-| **Lesson** | The teachable body of a module — primarily **MDX** following a fixed teaching skeleton (~10–15 min read). Legacy modules may still have short **cards** until regenerated |
-| **Teaching skeleton** | Required lesson sections: Why this matters → The idea → How to think about it → Worked example → Common mistake → Try this |
+| **Lesson** | The teachable body of a module — primarily **MDX** with a model-chosen H2 outline that covers the pedagogical intents. Depth scales with the module (short or longer). May include optional Mermaid diagrams. Legacy modules may still have short **cards** or older fixed-title MDX until regenerated |
+| **Pedagogical intents** | Soft teaching checklist every lesson should cover (titles are free; merge/split allowed): motivation · core idea · how to think · worked example · common mistake · practice. _Avoid:_ “Teaching skeleton” as fixed H2 titles |
+| **Teaching skeleton** | **Deprecated term** for the old fixed H2 title list. Prefer **pedagogical intents**. Older lessons may still show those titles until regenerate |
 | **Pack** | Suggested entry point (v0: AI Engineering only). Packs set defaults + optional fixed diagnostic; **all course body is still AI-generated** |
 | **Intake** | Topic + goal + hours/week + optional deadline |
 | **Diagnostic** | Placement quiz before path outline (fixed bank for pack; LLM-generated for free-prompt). Cached per path after first generation |

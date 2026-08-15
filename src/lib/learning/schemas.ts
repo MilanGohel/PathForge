@@ -46,7 +46,7 @@ export const l2Schema = z.object({
     .string()
     .min(400)
     .describe(
-      "Full module lesson as MDX with required H2 skeleton sections (~10–15 min teachable read)",
+      "Full module lesson as MDX with topic-specific H2s covering pedagogical intents (~8–20 min teachable read; optional mermaid fences)",
     ),
   quiz: z
     .array(

@@ -44,7 +44,7 @@ function mockModels(overrides?: Partial<ModelClient>): ModelClient {
       ],
     })),
     generateL2Content: vi.fn(async () => ({
-      mdx: `## Why this matters\nMatters because X.\n## The idea\nCore idea here with enough depth to learn.\n## How to think about it\nMental model.\n## Worked example\nExample walkthrough.\n## Common mistake\nDon't do Y.\n## Try this\nDo Z once.`,
+      mdx: `## Why context windows bite\nMatters because X.\n## The sliding window model\nCore idea here with enough depth to learn.\n## How truncation works\nMental model.\n## A walkthrough\nExample walkthrough.\n## Where people over-cut\nDon't do Y.\n## Try it on a chat log\nDo Z once.`,
       quiz: [
         {
           id: "q1",
@@ -118,7 +118,7 @@ describe("LearningGeneration", () => {
       moduleBlurb: "B",
     });
 
-    expect(result.mdx).toContain("Why this matters");
+    expect(result.mdx).toContain("Why context windows bite");
     expect(result.cards).toEqual([]);
     expect(result.resources.length).toBeLessThanOrEqual(3);
     expect(result.resources[0]?.url).toContain("example.com");

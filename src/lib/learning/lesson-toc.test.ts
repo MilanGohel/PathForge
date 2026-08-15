@@ -1,19 +1,33 @@
 import { describe, expect, it } from "vitest";
-import { LESSON_SKELETON_HEADINGS } from "./lesson-format";
 import { extractLessonToc, slugifyHeading } from "./lesson-toc";
 
-const SAMPLE = [
-  ...LESSON_SKELETON_HEADINGS.flatMap((h, i) =>
-    i === 1
-      ? [`## ${h}`, "", "Body.", "", "### Nested detail", "", "Should be ignored.", ""]
-      : [`## ${h}`, "", "Text.", ""],
-  ),
+const VARIED = [
+  "## Why context windows bite",
+  "",
+  "Body.",
+  "",
+  "### Nested detail",
+  "",
+  "Should be ignored.",
+  "",
+  "## The sliding window model",
+  "",
+  "Text.",
+  "",
+  "## A truncation walkthrough",
+  "",
+  "More.",
+  "",
 ].join("\n");
 
 describe("extractLessonToc", () => {
-  it("extracts H2 titles from teaching skeleton MDX", () => {
-    const toc = extractLessonToc(SAMPLE);
-    expect(toc.map((t) => t.title)).toEqual([...LESSON_SKELETON_HEADINGS]);
+  it("extracts varied free H2 titles", () => {
+    const toc = extractLessonToc(VARIED);
+    expect(toc.map((t) => t.title)).toEqual([
+      "Why context windows bite",
+      "The sliding window model",
+      "A truncation walkthrough",
+    ]);
   });
 
   it("ignores H3 headings", () => {
@@ -42,8 +56,15 @@ describe("extractLessonToc", () => {
     expect(toc[1].title).toContain("code");
   });
 
-  it("slugifyHeading matches TOC ids for skeleton headings", () => {
-    for (const h of LESSON_SKELETON_HEADINGS) {
+  it("ignores headings inside fenced blocks", () => {
+    const toc = extractLessonToc(
+      ["## Real", "", "```", "## Fake", "```", "", "## Also real", ""].join("\n"),
+    );
+    expect(toc.map((t) => t.title)).toEqual(["Real", "Also real"]);
+  });
+
+  it("slugifyHeading matches TOC ids for free titles", () => {
+    for (const h of ["Why context bites", "Try it yourself"]) {
       const toc = extractLessonToc(`## ${h}\n\nbody\n`);
       expect(toc[0].id).toBe(slugifyHeading(h));
     }

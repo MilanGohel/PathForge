@@ -12,7 +12,7 @@ import type {
   L1Result,
   L2Result,
 } from "@/types/domain";
-import { LESSON_SKELETON_PROMPT, sanitizeLessonMdx } from "./lesson-format";
+import { LESSON_OUTLINE_PROMPT, sanitizeLessonMdx } from "./lesson-format";
 import {
   diagnosticQuestionsSchema,
   l0Schema,
@@ -166,7 +166,7 @@ Rules:
     }) {
       const gateway = getGateway();
       const directionBlock = direction?.trim()
-        ? `\nLearner regenerate direction (honor if compatible with the skeleton; do not drop required H2s): ${direction.trim()}\n`
+        ? `\nLearner regenerate direction (honor if compatible with the pedagogical intents; keep the lesson teachable standalone): ${direction.trim()}\n`
         : "";
       const object = await generateStructured({
         model: gateway(strongModel()),
@@ -179,9 +179,9 @@ Topic: ${topic}
 Stage: ${stageTitle}
 Module: ${moduleTitle}
 Blurb: ${moduleBlurb}
-Suggested sitting time: ${estMinutes ?? 25} minutes (aim ~10–15 min focused read; do not write a thesis).
+Suggested sitting time: ${estMinutes ?? 25} minutes (soft aim ~8–20 min focused read scaled to this module; do not pad or write a thesis).
 ${directionBlock}
-${LESSON_SKELETON_PROMPT}
+${LESSON_OUTLINE_PROMPT}
 
 Return JSON only:
 {

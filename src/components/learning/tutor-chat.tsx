@@ -4,26 +4,24 @@ import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { track } from "@/lib/analytics";
-import { LESSON_SKELETON_HEADINGS } from "@/lib/learning/lesson-format";
+import { presentTutorSuggestions } from "@/lib/learning/tutor-suggestions";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
-const SUGGESTIONS = [
-  `Explain the “${LESSON_SKELETON_HEADINGS[3]}” another way`,
-  `Quiz me lightly on “${LESSON_SKELETON_HEADINGS[1]}”`,
-  `Help me avoid the “${LESSON_SKELETON_HEADINGS[4]}”`,
-];
-
 export function TutorChat({
   moduleId,
   initialMessages = [],
+  lessonTitles = [],
 }: {
   moduleId: string;
   initialMessages?: Msg[];
+  /** H2 titles from the open lesson — used for empty-state suggestions. */
+  lessonTitles?: string[];
 }) {
+  const suggestions = presentTutorSuggestions(lessonTitles);
   const [messages, setMessages] = useState<Msg[]>(initialMessages);
   const [input, setInput] = useState("");
   const [challenge, setChallenge] = useState(false);
@@ -200,7 +198,7 @@ export function TutorChat({
               Ask anything about this module, or try a suggestion.
             </p>
             <div className="flex flex-col gap-2">
-              {SUGGESTIONS.map((s) => (
+              {suggestions.map((s) => (
                 <button
                   key={s}
                   type="button"

@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import { cn } from "@/lib/utils";
+import { MermaidBlock } from "./mermaid-block";
 
 function extractText(node: ReactNode): string {
   if (node == null || typeof node === "boolean") return "";
@@ -36,6 +37,10 @@ export function PreBlock(props: ComponentPropsWithoutRef<"pre">) {
     }
   }
   const text = extractText(props.children);
+
+  if (lang === "mermaid") {
+    return <MermaidBlock source={text} />;
+  }
 
   return (
     <div className="group relative my-4">

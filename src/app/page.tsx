@@ -27,7 +27,7 @@ const PROOF = [
   },
   {
     t: "Lessons that teach",
-    d: "Full MDX modules (~10–15 min), not thin skim cards.",
+    d: "Full MDX modules with a clear outline — not thin skim cards.",
   },
   {
     t: "Real resources",
@@ -65,7 +65,7 @@ const FEATURES = [
   },
   {
     t: "Guide & teach",
-    d: "Today’s next module, MDX teaching skeleton, optional quiz, and a module-scoped tutor.",
+    d: "Today’s next module, teachable MDX lessons with a clear outline, optional quiz, and a module-scoped tutor.",
   },
   {
     t: "Curate",
@@ -144,7 +144,11 @@ function PathMock() {
         </p>
         <p className="mt-1 text-sm font-medium">Why context windows matter</p>
         <div className="mt-2 space-y-1.5">
-          {["Why this matters", "The idea", "Worked example"].map((h) => (
+          {[
+            "Why context windows bite",
+            "The sliding window model",
+            "A truncation walkthrough",
+          ].map((h) => (
             <div key={h} className="flex items-center gap-2 text-xs text-muted">
               <span className="h-1 w-1 rounded-full bg-primary" />
               {h}
@@ -277,9 +281,8 @@ export default function HomePage() {
               See the shape of a path
             </h2>
             <p className="mt-3 text-muted leading-relaxed">
-              Stages group modules. Lessons use a fixed teaching skeleton so
-              every module is a ~10–15 minute teachable read — with a sticky
-              outline when you dive in.
+              Stages group modules. Lessons are teachable MDX reads with a
+              topic-specific outline — sticky on desktop when you dive in.
             </p>
             <ul className="mt-6 space-y-2 text-sm text-muted">
               <li className="flex gap-2">

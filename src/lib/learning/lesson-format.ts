@@ -1,24 +1,41 @@
-/** Fixed teaching skeleton every L2 module body must follow (grill lock). */
-export const LESSON_SKELETON_HEADINGS = [
-  "Why this matters",
-  "The idea",
-  "How to think about it",
-  "Worked example",
-  "Common mistake",
-  "Try this",
+import { splitLessonH2Sections } from "./lesson-toc";
+
+/** Soft pedagogical intents every L2 lesson should cover (titles are free). */
+export const LESSON_PEDAGOGICAL_INTENTS = [
+  "motivation — why this module matters",
+  "core idea — the central concept",
+  "how to think — mental model or approach",
+  "worked example — concrete walkthrough",
+  "common mistake — pitfall to avoid",
+  "practice — something the learner can try",
 ] as const;
 
-export const LESSON_SKELETON_PROMPT = `Write ONE teachable module lesson as MDX (Markdown + optional <Callout> and <Steps>).
+export const LESSON_THIN_MIN_H2 = 3;
+export const LESSON_THIN_MIN_BODY_CHARS = 400;
+/** Minimum non-whitespace body chars under an H2 before it counts as empty. */
+export const LESSON_THIN_MIN_SECTION_CHARS = 20;
 
-Target depth: ~10–15 minute read. Detailed enough to learn the topic from this module alone — NOT a research paper. Plain language first; one small code snippet only when it truly helps.
+export const LESSON_OUTLINE_PROMPT = `Write ONE teachable module lesson as MDX (Markdown + optional <Callout> and <Steps>).
 
-You MUST include these H2 sections in order (exact titles):
-${LESSON_SKELETON_HEADINGS.map((h) => `## ${h}`).join("\n")}
+Teach so the learner can understand this module from the lesson alone. Aim for a focused read that fits the suggested sitting time (typically ~8–20 minutes of reading — shorter modules stay shorter; do not pad, do not write a thesis).
 
-Optional final H2: ## When you're ready
+Pedagogical intents (cover all six; titles are FREE — do not reuse a generic template on every module):
+${LESSON_PEDAGOGICAL_INTENTS.map((i) => `- ${i}`).join("\n")}
+
+Outline rules:
+- Choose clear, **topic-specific H2 titles** that fit this module.
+- You MAY merge intents into fewer H2s when that reads better.
+- You MAY add extra topic-specific H2s (comparison, checklist, etc.) when useful.
+- Optional closing H2 (e.g. next steps) only when it helps — not mandatory boilerplate.
+- Prefer plain language; one small code snippet only when it truly helps.
+
+Optional diagrams (Mermaid):
+- You MAY include 0–2 fenced \`\`\`mermaid blocks when a diagram materially helps (flow, relationship, comparison).
+- Never invent diagrams for decoration. If unsure, skip.
+- Do not use other diagram languages or raw <svg>.
 
 MDX rules:
-- Use GFM: headings, lists, bold, fenced code blocks.
+- Use GFM: headings, lists, bold, fenced code blocks, tables.
 - You MAY use:
   <Callout type="info|tip|warn">...</Callout>
   <Steps>
@@ -43,70 +60,94 @@ export function isLegacyLesson(input: {
   return Array.isArray(cards) && cards.length > 0;
 }
 
-export type SkeletonCompleteness = {
-  complete: boolean;
-  missingHeadings: string[];
+export type LessonThinness = {
+  thin: boolean;
+  reasons: string[];
 };
 
+/** Count substantial body text (fences/links stripped so code dumps don't fake density). */
+function bodyCharCount(body: string): number {
+  return body
+    .replace(/```[\s\S]*?```/g, " ")
+    .replace(/~~~[\s\S]*?~~~/g, " ")
+    .replace(/!\[[^\]]*]\([^)]*\)/g, " ")
+    .replace(/\[[^\]]*]\([^)]*\)/g, " ")
+    .replace(/[#>*_`~\-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim().length;
+}
+
 /**
- * Check MDX for required teaching-skeleton H2 titles (presence, not order).
+ * Structural thinness check for lesson MDX.
+ * Does NOT require legacy fixed H2 titles.
  */
-export function presentSkeletonCompleteness(
+export function presentLessonThinness(
   mdx: string | null | undefined,
-): SkeletonCompleteness {
+): LessonThinness {
   const source = (mdx ?? "").replace(/\r\n/g, "\n");
+  const reasons: string[] = [];
+
   if (!source.trim()) {
     return {
-      complete: false,
-      missingHeadings: [...LESSON_SKELETON_HEADINGS],
+      thin: true,
+      reasons: ["Lesson body is empty"],
     };
   }
 
-  const found = new Set<string>();
+  const sections = splitLessonH2Sections(source);
+  if (sections.length < LESSON_THIN_MIN_H2) {
+    reasons.push(
+      `Fewer than ${LESSON_THIN_MIN_H2} sections (found ${sections.length})`,
+    );
+  }
+
+  const bodyChars = sections.reduce((n, s) => n + bodyCharCount(s.body), 0);
+  if (bodyChars < LESSON_THIN_MIN_BODY_CHARS) {
+    reasons.push(
+      `Body text under ${LESSON_THIN_MIN_BODY_CHARS} characters (found ${bodyChars})`,
+    );
+  }
+
+  const emptyTitles = sections
+    .filter((s) => bodyCharCount(s.body) < LESSON_THIN_MIN_SECTION_CHARS)
+    .map((s) => s.title);
+  if (emptyTitles.length > 0) {
+    reasons.push(
+      `Empty section${emptyTitles.length > 1 ? "s" : ""}: ${emptyTitles.join(", ")}`,
+    );
+  }
+
+  return { thin: reasons.length > 0, reasons };
+}
+
+const ALLOWED_HTML_TAG =
+  /<\/?(?!Callout\b|Steps\b|strong\b|em\b|code\b|pre\b|a\b|ul\b|ol\b|li\b|p\b|h[1-6]\b|blockquote\b|hr\b|table\b|thead\b|tbody\b|tr\b|th\b|td\b|br\b)([a-zA-Z][\w:-]*)\b[^>]*>/g;
+
+/**
+ * Strip dangerous MDX bits before compile; keep Callout/Steps tags.
+ * Fence-aware: does not touch contents of fenced code/mermaid blocks.
+ */
+export function sanitizeLessonMdx(source: string): string {
+  const lines = source.trim().replace(/\r\n/g, "\n").split("\n");
+  const out: string[] = [];
   let inFence = false;
-  for (const line of source.split("\n")) {
+
+  for (const line of lines) {
     const fence = line.match(/^(\s*)(`{3,}|~{3,})/);
     if (fence) {
       inFence = !inFence;
+      out.push(line);
       continue;
     }
-    if (inFence) continue;
-    const m = line.match(/^##\s+(?!#)(.+?)\s*#*\s*$/);
-    if (!m) continue;
-    const title = m[1]
-      .replace(/`([^`]+)`/g, "$1")
-      .replace(/\*\*([^*]+)\*\*/g, "$1")
-      .replace(/\*([^*]+)\*/g, "$1")
-      .replace(/\s+/g, " ")
-      .trim();
-    for (const required of LESSON_SKELETON_HEADINGS) {
-      if (title.toLowerCase() === required.toLowerCase()) {
-        found.add(required);
-      }
+    if (inFence) {
+      out.push(line);
+      continue;
     }
+    if (/^\s*(import|export)\s/.test(line)) continue;
+    let cleaned = line.replace(/<\/?(script|style)[^>]*>/gi, "");
+    cleaned = cleaned.replace(ALLOWED_HTML_TAG, "");
+    out.push(cleaned);
   }
 
-  const missingHeadings = LESSON_SKELETON_HEADINGS.filter((h) => !found.has(h));
-  return {
-    complete: missingHeadings.length === 0,
-    missingHeadings: [...missingHeadings],
-  };
-}
-
-/** Strip dangerous MDX bits before compile; keep Callout/Steps tags. */
-export function sanitizeLessonMdx(source: string): string {
-  let s = source.trim();
-  // Drop import/export lines
-  s = s
-    .split("\n")
-    .filter((line) => !/^\s*(import|export)\s/.test(line))
-    .join("\n");
-  // Remove script/style tags
-  s = s.replace(/<\/?(script|style)[^>]*>/gi, "");
-  // Neutralize obvious raw HTML except our allowlisted tags
-  s = s.replace(
-    /<\/?(?!Callout\b|Steps\b|strong\b|em\b|code\b|pre\b|a\b|ul\b|ol\b|li\b|p\b|h[1-6]\b|blockquote\b|hr\b|table\b|thead\b|tbody\b|tr\b|th\b|td\b|br\b)([a-zA-Z][\w:-]*)\b[^>]*>/g,
-    "",
-  );
-  return s.trim();
+  return out.join("\n").trim();
 }

@@ -2,13 +2,15 @@
 
 ## Status
 
-Accepted — 2026-08-16
+**Superseded by [ADR 0002](./0002-flexible-lesson-outline.md)** — 2026-08-16
+
+The MDX-as-primary-body decision still holds. The **fixed teaching skeleton titles** decision does not; see 0002 for soft pedagogical intents and free H2 wording.
 
 ## Context
 
 v0 L2 used five fixed card kinds with short bodies plus up to eight search/YouTube links. Learners could not learn the topic from the module alone; the page felt like thin predefined sections plus a link dump.
 
-## Decision
+## Decision (historical)
 
 - L2 primary body is **MDX** with a **fixed teaching skeleton** (~10–15 min teachable read).
 - Allowlisted MDX components only: `Callout`, `Steps` (+ normal GFM).
@@ -20,6 +22,5 @@ v0 L2 used five fixed card kinds with short bodies plus up to eight search/YouTu
 
 ## Consequences
 
-- Higher L2 token cost and latency; better learning outcomes.
-- Need sanitize + compile fallback for bad MDX.
-- Schema adds `lessons.mdx`; `cards` retained for legacy rows.
+- Higher L2 token cost and latency; better learning outcomes than cards.
+- Fixed titles later made every module feel templated — addressed in ADR 0002.

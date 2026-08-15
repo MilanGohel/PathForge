@@ -137,7 +137,7 @@ export const lessons = pgTable("lessons", {
     .notNull()
     .unique()
     .references(() => modules.id, { onDelete: "cascade" }),
-  /** Primary teach surface (MDX with fixed skeleton). Empty on legacy rows. */
+  /** Primary teach surface (MDX; model-chosen H2 outline). Empty on legacy rows. */
   mdx: text("mdx").notNull().default(""),
   /** @deprecated Legacy short cards; empty for new L2 gens */
   cards: jsonb("cards").notNull().default(sql`'[]'::jsonb`),

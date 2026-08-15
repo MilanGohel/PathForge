@@ -3,7 +3,7 @@ import { requireUser } from "@/lib/supabase/server";
 import { formatMinutes } from "@/lib/utils";
 import {
   isLegacyLesson,
-  presentSkeletonCompleteness,
+  presentLessonThinness,
 } from "@/lib/learning/lesson-format";
 import { extractLessonToc } from "@/lib/learning/lesson-toc";
 import {
@@ -166,11 +166,12 @@ export default async function ModulePage({
   const cards = (lesson?.cards as LessonCard[] | null) ?? [];
   const legacy = isLegacyLesson({ mdx, cards });
   const toc = !legacy && mdx.trim() ? extractLessonToc(mdx) : [];
-  const skeleton =
-    !legacy && mdx.trim() ? presentSkeletonCompleteness(mdx) : null;
+  const thinness =
+    !legacy && mdx.trim() ? presentLessonThinness(mdx) : null;
   const pathTitle = stage.paths.title ?? stage.paths.topic;
   const completed = Boolean(mod.completed_at);
   const tocIds = toc.map((t) => t.id);
+  const tocTitles = toc.map((t) => t.title);
 
   const lessonSection = (
     <section className="space-y-4">
@@ -187,8 +188,8 @@ export default async function ModulePage({
           <LessonBody source={mdx} toc={toc} />
 
           {toc.length > 0 ? (
-            <aside className="absolute top-0 left-[calc(100%+2.5rem)] hidden w-52 xl:block">
-              <div className="sticky top-20">
+            <aside className="pointer-events-none absolute inset-y-0 left-[calc(100%+2.5rem)] hidden w-52 xl:block">
+              <div className="pointer-events-auto sticky top-20 max-h-[calc(100vh-6rem)] overflow-y-auto">
                 <LessonTocNav entries={toc} desktopOnly />
               </div>
             </aside>
@@ -253,7 +254,11 @@ export default async function ModulePage({
 
       <section className="space-y-3">
         <h2 className="text-lg font-semibold tracking-tight">Tutor</h2>
-        <TutorChat moduleId={moduleId} initialMessages={initialMessages} />
+        <TutorChat
+          moduleId={moduleId}
+          initialMessages={initialMessages}
+          lessonTitles={tocTitles}
+        />
       </section>
     </>
   );
@@ -300,18 +305,18 @@ export default async function ModulePage({
               <p className="font-medium">Old short-card format</p>
               <p className="mt-1 opacity-90">
                 This lesson was generated before full MDX teaching content. Hit{" "}
-                <strong>Regenerate lesson</strong> for a ~10–15 min teachable
-                module (uses one AI generation).
+                <strong>Regenerate lesson</strong> for a teachable module with
+                a topic-specific outline (uses one AI generation).
               </p>
             </div>
           ) : null}
 
-          {skeleton && !skeleton.complete ? (
+          {thinness?.thin ? (
             <div className="rounded-xl border border-warning-border bg-warning-bg px-4 py-3 text-sm text-warning-fg">
-              <p className="font-medium">Lesson may be incomplete</p>
+              <p className="font-medium">Lesson looks thin</p>
               <p className="mt-1 opacity-90">
-                Missing teaching sections: {skeleton.missingHeadings.join(", ")}
-                . Regenerate to restore the full skeleton.
+                {thinness.reasons.join(" · ")}. Regenerate for a fuller teachable
+                module.
               </p>
             </div>
           ) : null}
