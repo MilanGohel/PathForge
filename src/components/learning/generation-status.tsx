@@ -129,7 +129,7 @@ export function GenerationStatus({
 
       {/* Soft progress + rotating messages for long waits */}
       {showSoftWait && !isError ? (
-        <div className="mb-5 space-y-3">
+        <div className="space-y-3">
           <div
             className="h-2 overflow-hidden rounded-full bg-background/70"
             aria-hidden
@@ -150,38 +150,14 @@ export function GenerationStatus({
               {percent}%
             </span>
           </div>
+          <p className="text-xs text-muted">
+            Hang tight — good lessons take a moment. You can leave this tab open.
+          </p>
         </div>
       ) : null}
 
-      <ol className="space-y-2">
-        {view.steps.map((step) => (
-          <li
-            key={step.id}
-            className={cn(
-              "flex items-start gap-2 text-sm transition-opacity",
-              step.state === "active" &&
-                "font-medium text-primary-soft-fg opacity-100",
-              step.state === "done" && "text-muted opacity-80",
-              step.state === "pending" && "text-muted opacity-50",
-              step.state === "error" && "font-medium text-danger-fg",
-            )}
-          >
-            <span className="w-4 shrink-0 text-center" aria-hidden>
-              {step.state === "done"
-                ? "✓"
-                : step.state === "active"
-                  ? "→"
-                  : step.state === "error"
-                    ? "!"
-                    : "○"}
-            </span>
-            <span>{step.label}</span>
-          </li>
-        ))}
-      </ol>
-
       {isError ? (
-        <div className="mt-4 space-y-3">
+        <div className="mt-1 space-y-3">
           <p className="text-sm text-danger-fg">
             {view.errorMessage ??
               errorMessage ??
@@ -193,11 +169,7 @@ export function GenerationStatus({
             </Button>
           ) : null}
         </div>
-      ) : (
-        <p className="mt-4 text-xs text-muted">
-          Hang tight — good lessons take a moment. You can leave this tab open.
-        </p>
-      )}
+      ) : null}
     </div>
   );
 }
