@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { track } from "@/lib/analytics";
 import {
-  ensureModuleL2,
   markModuleComplete,
   saveModuleNote,
   submitQuizAnswer,
@@ -46,10 +45,62 @@ export function CompleteButton({
 
 export function RegenerateModuleButton({ moduleId }: { moduleId: string }) {
   const router = useRouter();
-  const [pending, startTransition] = useTransition();
+  const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const [direction, setDirection] = useState("");
+
+  async function confirmRegenerate() {
+    setError(null);
+    setPending(true);
+    try {
+      const res = await fetch("/api/modules/ensure-l2", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          moduleId,
+          regenerate: true,
+          direction,
+        }),
+      });
+      const body = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        status?: string;
+      };
+      if (!res.ok) {
+        setError(body.error ?? `Regenerate failed (${res.status})`);
+        return;
+      }
+      // Poll until ready so we stay on this module page
+      for (let i = 0; i < 150; i++) {
+        const stRes = await fetch(
+          `/api/modules/ensure-l2?moduleId=${encodeURIComponent(moduleId)}`,
+          { cache: "no-store" },
+        );
+        const st = (await stRes.json().catch(() => ({}))) as {
+          status?: string;
+          errorMessage?: string | null;
+          error?: string;
+        };
+        if (st.status === "ready") {
+          setOpen(false);
+          setDirection("");
+          router.refresh();
+          return;
+        }
+        if (st.status === "error") {
+          setError(st.errorMessage ?? st.error ?? "Regenerate failed");
+          return;
+        }
+        await new Promise((r) => setTimeout(r, 2000));
+      }
+      setError("Regenerate is taking longer than expected. Try again.");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Regenerate failed");
+    } finally {
+      setPending(false);
+    }
+  }
 
   return (
     <div className="inline-flex flex-col items-stretch gap-2">
@@ -62,19 +113,7 @@ export function RegenerateModuleButton({ moduleId }: { moduleId: string }) {
               setOpen(true);
               return;
             }
-            setError(null);
-            startTransition(async () => {
-              const res = await ensureModuleL2(moduleId, {
-                regenerate: true,
-                direction,
-              });
-              if (!res.ok) setError(res.error);
-              else {
-                setOpen(false);
-                setDirection("");
-              }
-              router.refresh();
-            });
+            void confirmRegenerate();
           }}
         >
           {pending

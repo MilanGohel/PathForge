@@ -9,7 +9,6 @@ import { scoreDiagnostic } from "./diagnostic";
 import { BudgetExceededError } from "./generation";
 import { createSupabaseBudgetStore } from "./budget-store";
 import { presentBudgetWarning } from "./budget-warning";
-import { normalizeRegenerateDirection } from "./regenerate-direction";
 import { getLearningGeneration } from "./service";
 import type { DiagnosticAnswer, DiagnosticQuestion } from "@/types/domain";
 
@@ -312,129 +311,20 @@ export async function ensureStageL1(
   }
 }
 
+/**
+ * Prefer POST /api/modules/ensure-l2 from the client for first-open generation
+ * (avoids long server-action navigation glitches). Kept for regenerate and
+ * any remaining action callers.
+ */
 export async function ensureModuleL2(
   moduleId: string,
   opts?: { regenerate?: boolean; direction?: string | null },
 ): Promise<ActionResult> {
   const { supabase, user } = await ensureAuth();
-
-  const { data: mod, error } = await supabase
-    .from("modules")
-    .select("*, stages(*, paths(*))")
-    .eq("id", moduleId)
-    .single();
-
-  if (error || !mod) {
-    return { ok: false, error: "Module not found" };
-  }
-
-  const stage = mod.stages as {
-    id: string;
-    title: string;
-    paths: {
-      id: string;
-      user_id: string;
-      title: string | null;
-      topic: string;
-    };
-  };
-
-  if (stage.paths.user_id !== user.id) {
-    return { ok: false, error: "Forbidden" };
-  }
-
-  if (mod.l2_status === "ready" && !opts?.regenerate) {
-    return { ok: true, data: undefined };
-  }
-
-  const direction = normalizeRegenerateDirection(opts?.direction);
-
-  await supabase
-    .from("modules")
-    .update({ l2_status: "generating", error_message: null })
-    .eq("id", moduleId);
-
-  try {
-    const gen = await getLearningGeneration();
-    const l2 = await gen.createL2(user.id, moduleId, {
-      topic: stage.paths.topic,
-      pathTitle: stage.paths.title ?? stage.paths.topic,
-      stageTitle: stage.title,
-      moduleTitle: mod.title,
-      moduleBlurb: mod.blurb,
-      estMinutes: mod.est_minutes,
-      direction,
-    });
-
-    if (opts?.regenerate) {
-      await supabase.from("lessons").delete().eq("module_id", moduleId);
-      await supabase.from("resources").delete().eq("module_id", moduleId);
-      await supabase.from("quiz_items").delete().eq("module_id", moduleId);
-    }
-
-    const { error: lessonErr } = await supabase.from("lessons").upsert({
-      module_id: moduleId,
-      mdx: l2.mdx,
-      cards: [],
-      generated_at: new Date().toISOString(),
-    });
-    if (lessonErr) throw lessonErr;
-
-    if (l2.resources.length) {
-      const { error: resErr } = await supabase.from("resources").insert(
-        l2.resources.map((r, i) => ({
-          module_id: moduleId,
-          title: r.title,
-          url: r.url,
-          kind: r.kind,
-          provider: r.provider ?? null,
-          snippet: r.snippet ?? null,
-          verified: true,
-          position: i,
-        })),
-      );
-      if (resErr) throw resErr;
-    }
-
-    if (l2.quiz.length) {
-      const { error: quizErr } = await supabase.from("quiz_items").insert(
-        l2.quiz.map((q, i) => ({
-          module_id: moduleId,
-          position: i,
-          prompt: q.prompt,
-          choices: q.choices,
-          correct_index: q.correctIndex,
-          explanation: q.explanation,
-        })),
-      );
-      if (quizErr) throw quizErr;
-    }
-
-    await supabase
-      .from("modules")
-      .update({ l2_status: "ready", error_message: null })
-      .eq("id", moduleId);
-
-    try {
-      const { track } = await import("@/lib/analytics");
-      track("lesson_ready", { moduleId });
-    } catch {
-      /* ignore */
-    }
-
-    const pathId = stage.paths.id;
-    revalidatePath(`/paths/${pathId}/modules/${moduleId}`);
-    revalidatePath(`/paths/${pathId}`);
-    return { ok: true, data: undefined };
-  } catch (e) {
-    const message =
-      e instanceof Error ? e.message : "L2 generation failed";
-    await supabase
-      .from("modules")
-      .update({ l2_status: "error", error_message: message })
-      .eq("id", moduleId);
-    return { ok: false, error: message };
-  }
+  const { runEnsureModuleL2 } = await import("./ensure-l2-core");
+  const result = await runEnsureModuleL2(supabase, user, moduleId, opts);
+  if (!result.ok) return { ok: false, error: result.error };
+  return { ok: true, data: undefined };
 }
 
 export async function markModuleComplete(
