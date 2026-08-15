@@ -94,7 +94,9 @@ UI and route handlers call this service; they do not call the gateway ad hoc.
 - `tutor_threads` / `tutor_messages` — per module
 - `generation_events` — user_id, level, tokens/cost estimate, ok/error (for server budgets)
 
-Exact SQL/migrations live in implementation tickets.
+Schema source of truth: `src/db/schema.ts` (Drizzle).  
+Generate/apply: `pnpm db:generate` → `pnpm db:migrate` → `pnpm db:rls`.  
+Never hand-write migration SQL.
 
 ## 5. Build phases
 

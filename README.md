@@ -22,15 +22,26 @@ cp .env.example .env.local
 # paste keys into .env.local
 ```
 
-### 1. Supabase
+### 1. Supabase + Drizzle
 
 1. Create a project at [supabase.com](https://supabase.com)
-2. **SQL** → run [`supabase/migrations/001_pathforge.sql`](./supabase/migrations/001_pathforge.sql)
-3. **Authentication → Providers** → enable **Google** and **GitHub**
-4. **Authentication → URL configuration**
+2. Copy **Project URL** + **anon key** into `.env.local`
+3. Copy **Database → Connection string (URI)** into `DATABASE_URL` in `.env.local`
+4. Generate + apply schema (Drizzle only — never hand-write SQL migrations):
+
+```bash
+pnpm db:generate   # schema.ts → drizzle/*.sql
+pnpm db:migrate    # apply tables
+pnpm db:rls        # RLS policies, auth trigger, pack seed
+# or: pnpm db:setup   # migrate + rls
+```
+
+5. **Authentication → Providers** → enable **Google** and **GitHub**
+6. **Authentication → URL configuration**
    - Site URL: `http://localhost:3000`
    - Redirect URLs: `http://localhost:3000/auth/callback`
-5. Copy **Project URL** + **anon key** into `.env.local`
+
+Schema source of truth: [`src/db/schema.ts`](./src/db/schema.ts). See [`CLAUDE.md`](./CLAUDE.md).
 
 ### 2. Vercel AI Gateway
 
@@ -83,7 +94,8 @@ pnpm build
 | Domain glossary | [`CONTEXT.md`](./CONTEXT.md) |
 | v0 spec | [`.scratch/pathforge-v0/spec.md`](./.scratch/pathforge-v0/spec.md) |
 | Env template | [`.env.example`](./.env.example) |
-| SQL migration | [`supabase/migrations/001_pathforge.sql`](./supabase/migrations/001_pathforge.sql) |
+| Drizzle schema | [`src/db/schema.ts`](./src/db/schema.ts) |
+| Generated migrations | [`drizzle/`](./drizzle/) (kit output only) |
 
 ## Env reference
 
