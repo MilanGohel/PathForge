@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { signOut } from "@/lib/learning/actions";
 import { BrandMark } from "@/components/brand-mark";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 
 export function AppHeader({ email }: { email: string | null }) {
@@ -32,6 +33,7 @@ export function AppHeader({ email }: { email: string | null }) {
               {email}
             </span>
           ) : null}
+          <ThemeToggle />
           <form action={signOut}>
             <Button type="submit" variant="outline" size="sm">
               Sign out

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { BrandMark } from "@/components/brand-mark";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export function MarketingHeader() {
   return (
@@ -19,6 +20,7 @@ export function MarketingHeader() {
           >
             How it works
           </Link>
+          <ThemeToggle />
           <Link
             href="/login"
             className="rounded-lg px-3 py-2 text-sm text-muted hover:bg-muted-bg hover:text-foreground"

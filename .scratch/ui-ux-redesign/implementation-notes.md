@@ -2,11 +2,13 @@
 
 ## Theme strategy
 
-**System preference via CSS** (`prefers-color-scheme` on `:root` tokens in `src/app/globals.css`).
+**Class-based dark mode** with optional system follow:
 
-- No `class="dark"` toggle in this pass.
-- Tokens cover light and dark (background, foreground, muted, border, card, primary, danger, warning, success, ring).
-- App and marketing both consume the same token set.
+- Tokens on `:root` (light) and `html.dark` (dark) in `src/app/globals.css`.
+- Preference stored in `localStorage` key `pathforge-theme`: `light` | `dark` | `system`.
+- Navbar `ThemeToggle` cycles system → light → dark → system.
+- Inline `ThemeScript` in root layout applies class before paint (no FOUC).
+- Fallback CSS: if no `data-theme`, still honor `prefers-color-scheme` before JS.
 
 ## Shells
 
