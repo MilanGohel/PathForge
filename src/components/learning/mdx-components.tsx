@@ -159,6 +159,57 @@ export function createLessonMdxComponents(toc?: TocEntry[]) {
         )}
       />
     ),
+    // GFM tables — wrap for overflow; explicit cell chrome (unstyled tables collapse badly)
+    table: (props: ComponentPropsWithoutRef<"table">) => (
+      <div className="my-5 w-full overflow-x-auto rounded-xl border border-border">
+        <table
+          {...props}
+          className={cn(
+            "w-full min-w-[20rem] border-collapse text-left text-sm",
+            props.className,
+          )}
+        />
+      </div>
+    ),
+    thead: (props: ComponentPropsWithoutRef<"thead">) => (
+      <thead
+        {...props}
+        className={cn("bg-muted-bg text-foreground", props.className)}
+      />
+    ),
+    tbody: (props: ComponentPropsWithoutRef<"tbody">) => (
+      <tbody
+        {...props}
+        className={cn("bg-card text-foreground/90", props.className)}
+      />
+    ),
+    tr: (props: ComponentPropsWithoutRef<"tr">) => (
+      <tr
+        {...props}
+        className={cn(
+          "border-b border-border last:border-b-0",
+          props.className,
+        )}
+      />
+    ),
+    th: (props: ComponentPropsWithoutRef<"th">) => (
+      <th
+        {...props}
+        className={cn(
+          "border-r border-border px-3 py-2.5 text-left text-xs font-semibold tracking-wide whitespace-nowrap last:border-r-0",
+          props.className,
+        )}
+      />
+    ),
+    td: (props: ComponentPropsWithoutRef<"td">) => (
+      <td
+        {...props}
+        className={cn(
+          "border-r border-border px-3 py-2.5 align-top text-[14px] leading-6 last:border-r-0",
+          props.className,
+        )}
+      />
+    ),
   };
 }
 
