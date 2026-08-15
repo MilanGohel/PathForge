@@ -12,83 +12,83 @@ import {
 export const metadata: Metadata = {
   title: "Pathforge — AI learning paths that teach",
   description:
-    "Personalized learning paths with on-demand AI generation, teachable MDX lessons, curated resources, and a module tutor.",
+    "A personal learning path with real lessons, optional resources, progress, and a tutor grounded in what you’re studying.",
   openGraph: {
     title: "Pathforge — AI learning paths that teach",
     description:
-      "Generate a path, learn module-by-module with real lessons, and go deeper with curated resources.",
+      "Build a path for any topic, learn module by module, and go deeper when you want to.",
   },
 };
 
 const PROOF = [
   {
-    t: "Personalized paths",
-    d: "Intake + diagnostic shape stages to your level and goal.",
+    t: "Built around your goal",
+    d: "Tell us what you want and how much time you have — your path matches your level.",
   },
   {
-    t: "Lessons that teach",
-    d: "Full MDX modules with a clear outline — not thin skim cards.",
+    t: "Lessons that actually teach",
+    d: "Each module is a clear, readable lesson you can learn from on its own.",
   },
   {
-    t: "Real resources",
-    d: "A few quality-ranked links to go deeper — optional.",
+    t: "Help when you’re stuck",
+    d: "Notes, a light quiz, and a tutor that stays on this module — not the whole internet.",
   },
 ];
 
 const STEPS = [
   {
     n: "01",
-    t: "Intake",
-    d: "Say what you want to learn, your goal, and hours per week.",
+    t: "Share your goal",
+    d: "What you want to learn, why it matters, and how many hours a week you can give it.",
   },
   {
     n: "02",
-    t: "Diagnostic",
-    d: "A short placement quiz — pack bank or generated for free-prompt topics.",
+    t: "Find your starting point",
+    d: "A short placement quiz so the path doesn’t waste time on what you already know.",
   },
   {
     n: "03",
-    t: "Path stages",
-    d: "Get a staged outline (L0). Open a stage when you’re ready for modules.",
+    t: "Follow a clear roadmap",
+    d: "Stages break the journey into sensible chunks. Open the next one when you’re ready.",
   },
   {
     n: "04",
-    t: "Module lessons",
-    d: "Open a module for a teachable lesson, quiz, notes, and a grounded tutor.",
+    t: "Learn one module at a time",
+    d: "A full lesson, optional practice, your notes, and a tutor grounded in that module.",
   },
 ];
 
 const FEATURES = [
   {
-    t: "Generate",
-    d: "Lazy L0→L2 generation: outline first, modules on stage open, lessons on module open. Cached forever.",
+    t: "A path that fits you",
+    d: "Stages and modules shaped by your goal and placement — not a one-size syllabus.",
   },
   {
-    t: "Guide & teach",
-    d: "Today’s next module, teachable MDX lessons with a clear outline, optional quiz, and a module-scoped tutor.",
+    t: "Today’s next step",
+    d: "Always know what to open next. Mark modules complete when you’re done — no quiz gates.",
   },
   {
-    t: "Curate",
-    d: "At most three ranked external links (≤1 video). The lesson stands alone without them.",
+    t: "Go deeper on your terms",
+    d: "A few hand-picked external links when you want more. The lesson stands alone without them.",
   },
 ];
 
 const FAQ = [
   {
-    q: "Is the whole course generated up front?",
-    a: "No. Pathforge generates on demand: path outline after diagnostic, modules when you open a stage, lessons when you open a module. Everything is cached so you don’t pay twice.",
+    q: "What do I get for each module?",
+    a: "A teachable lesson with a clear outline, an optional short quiz, space for notes, a few curated links if you want them, and a tutor that only talks about this module.",
   },
   {
     q: "What’s the AI Engineering pack?",
-    a: "A suggested entry point with sensible defaults and a fixed diagnostic bank. All course body is still AI-generated for you.",
-  },
-  {
-    q: "How long does generation take?",
-    a: "Depends on the model and load — often under a minute for a module lesson. Progress shows the real phase you’re in, not a looping fake checklist.",
+    a: "A ready-made starting point with sensible defaults and a placement quiz for that topic. You can also start any custom topic after you sign in.",
   },
   {
     q: "Do I need the external links to learn?",
-    a: "No. Each module lesson is written to teach the topic itself. Links are optional “go deeper” material.",
+    a: "No. Each module is written so you can learn from the lesson itself. Links are optional “go deeper” material.",
+  },
+  {
+    q: "How do I know what to study next?",
+    a: "Your dashboard highlights today’s module. Finish at your own pace and open the next one when you’re ready.",
   },
 ];
 
@@ -114,9 +114,9 @@ function PathMock() {
       </div>
       <ul className="space-y-2">
         {[
-          { t: "LLM mental models", s: "3/4 modules", ready: true },
-          { t: "Prompting & evaluation", s: "Generate on open", ready: false },
-          { t: "RAG systems", s: "Not started", ready: false },
+          { t: "LLM mental models", s: "3 of 4 modules done", ready: true },
+          { t: "Prompting & evaluation", s: "Up next", ready: false },
+          { t: "RAG systems", s: "Later", ready: false },
         ].map((row) => (
           <li
             key={row.t}
@@ -180,13 +180,13 @@ export default function HomePage() {
               Learn anything with a path that remembers you
             </p>
             <h1 className="font-display text-4xl font-semibold tracking-tight sm:text-5xl sm:leading-[1.1]">
-              Your personal curriculum, forged by AI
+              Your personal curriculum, forged for how you learn
             </h1>
             <p className="mt-5 text-lg leading-relaxed text-muted">
               Pathforge builds a staged roadmap for whatever you want to learn,
-              then teaches module-by-module with full lessons, a few real
-              resources, progress, and a grounded tutor — without generating an
-              entire course up front.
+              then walks you through it one module at a time — real lessons, a
+              few quality resources, clear progress, and a tutor that stays on
+              topic.
             </p>
             <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
               <Link
@@ -226,8 +226,7 @@ export default function HomePage() {
               How it works
             </h2>
             <p className="mt-3 text-muted">
-              A clear loop from goal to next lesson — generate only what you
-              need, when you need it.
+              From goal to next lesson — a simple loop you can trust.
             </p>
           </div>
           <ol className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
@@ -255,7 +254,7 @@ export default function HomePage() {
               Built for real learning
             </h2>
             <p className="mt-3 text-muted">
-              Marketing matches the product: generate, guide & teach, curate.
+              Structure when you need it. Depth when the topic deserves it.
             </p>
           </div>
           <div className="mt-12 grid gap-4 sm:grid-cols-3">
@@ -281,21 +280,21 @@ export default function HomePage() {
               See the shape of a path
             </h2>
             <p className="mt-3 text-muted leading-relaxed">
-              Stages group modules. Lessons are teachable MDX reads with a
-              topic-specific outline — sticky on desktop when you dive in.
+              Stages group related modules. Each lesson has a topic-specific
+              outline you can scan — and jump around while you read.
             </p>
             <ul className="mt-6 space-y-2 text-sm text-muted">
               <li className="flex gap-2">
                 <span className="text-primary">✓</span>
-                Lazy generation you can understand
+                Always know your next module
               </li>
               <li className="flex gap-2">
                 <span className="text-primary">✓</span>
-                Honor-system completion, no quiz gates
+                Mark complete when you&apos;re ready — no quiz gates
               </li>
               <li className="flex gap-2">
                 <span className="text-primary">✓</span>
-                Module tutor grounded in the lesson
+                Tutor grounded in the lesson you&apos;re on
               </li>
             </ul>
           </div>
@@ -310,8 +309,8 @@ export default function HomePage() {
             Start with a pack
           </h2>
           <p className="mt-2 max-w-xl text-muted">
-            Packs set defaults and placement only. Every lesson is still
-            generated by Pathforge AI for you.
+            Suggested starting points with sensible defaults. Or pick any topic
+            you care about.
           </p>
           <div className="mt-8 grid gap-4">
             {packs.map((pack) => (
