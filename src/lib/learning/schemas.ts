@@ -1,9 +1,14 @@
 import { z } from "zod";
 
+/** Models often emit ids as numbers; coerce to string for our app types. */
+const idString = z.coerce.string().min(1);
+const num = z.coerce.number();
+const intNum = z.coerce.number().int();
+
 export const l0Schema = z.object({
   title: z.string(),
   summary: z.string(),
-  estHours: z.number(),
+  estHours: num,
   domainAlert: z
     .string()
     .nullable()
@@ -15,7 +20,7 @@ export const l0Schema = z.object({
       z.object({
         title: z.string(),
         summary: z.string(),
-        estHours: z.number(),
+        estHours: num,
       }),
     )
     .min(3)
@@ -28,38 +33,28 @@ export const l1Schema = z.object({
       z.object({
         title: z.string(),
         blurb: z.string(),
-        estMinutes: z.number().int().positive(),
+        estMinutes: intNum.positive(),
       }),
     )
     .min(2)
     .max(10),
 });
 
+/** L2: one MDX lesson body + quiz + search queries (no card kinds). */
 export const l2Schema = z.object({
-  cards: z
-    .array(
-      z.object({
-        id: z.string(),
-        kind: z.enum([
-          "concept",
-          "why_it_matters",
-          "example",
-          "pitfall",
-          "try_this",
-        ]),
-        title: z.string(),
-        body: z.string(),
-      }),
-    )
-    .min(4)
-    .max(6),
+  mdx: z
+    .string()
+    .min(400)
+    .describe(
+      "Full module lesson as MDX with required H2 skeleton sections (~10–15 min teachable read)",
+    ),
   quiz: z
     .array(
       z.object({
-        id: z.string(),
+        id: idString,
         prompt: z.string(),
         choices: z.array(z.string()).min(3).max(5),
-        correctIndex: z.number().int().nonnegative(),
+        correctIndex: intNum.nonnegative(),
         explanation: z.string(),
       }),
     )
@@ -68,19 +63,21 @@ export const l2Schema = z.object({
   resourceQueries: z
     .array(z.string())
     .min(1)
-    .max(3)
-    .describe("Short web search queries to find high-quality learning resources"),
+    .max(2)
+    .describe("1–2 short web search queries for optional deeper resources"),
 });
 
 export const diagnosticQuestionsSchema = z.object({
   questions: z
     .array(
       z.object({
-        id: z.string(),
+        id: idString,
         prompt: z.string(),
         choices: z.array(z.string()).min(3).max(5),
-        correctIndex: z.number().int().nonnegative(),
-        skillTag: z.string().optional(),
+        correctIndex: intNum.nonnegative(),
+        skillTag: z.coerce
+          .string()
+          .describe("Short skill tag, e.g. ml-fundamentals, rag, or general"),
       }),
     )
     .min(5)

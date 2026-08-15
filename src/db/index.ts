@@ -1,18 +1,16 @@
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
+import { getRuntimeDatabaseUrl } from "./env";
 import * as schema from "./schema";
 
 /**
- * Server-only Drizzle client (direct Postgres via DATABASE_URL).
- * Browser / RLS-scoped app queries still use Supabase client + auth session.
+ * Server-only Drizzle client.
+ * Uses DATABASE_URL (transaction pooler) when set; app data access via Supabase
+ * client + RLS remains the primary path for user-scoped queries.
  */
-export function createDb(connectionString = process.env.DATABASE_URL) {
-  if (!connectionString) {
-    throw new Error(
-      "Missing DATABASE_URL. Copy .env.example → .env.local and paste your Supabase Postgres connection string.",
-    );
-  }
-  const client = postgres(connectionString, { prepare: false });
+export function createDb(connectionString?: string) {
+  const url = connectionString ?? getRuntimeDatabaseUrl();
+  const client = postgres(url, { prepare: false });
   return drizzle(client, { schema });
 }
 

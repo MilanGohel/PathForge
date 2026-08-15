@@ -83,29 +83,25 @@ export async function searchLearningResources(input: {
   moduleTitle: string;
   blurb?: string;
 }): Promise<ResourceDraft[]> {
-  const q = `${input.moduleTitle} ${input.topic} tutorial OR guide OR course -job -salary`;
+  // Prefer guides/docs over pure video spam; ranking caps videos later.
+  const q = `${input.topic} ${input.moduleTitle} (documentation OR docs OR guide OR tutorial) -job -salary -hiring`;
   const web = await searchWeb(q, { num: 8 });
 
-  // Optional YouTube pass when key present
   const ytKey = env.youtubeApiKey();
   let videos: ResourceDraft[] = [];
   if (ytKey) {
     try {
-      videos = await searchYouTube(`${input.moduleTitle} ${input.topic}`, ytKey);
+      videos = await searchYouTube(
+        `${input.moduleTitle} ${input.topic} explained`,
+        ytKey,
+      );
     } catch {
       videos = [];
     }
   }
 
-  const merged = [...videos.slice(0, 3), ...web];
-  const seen = new Set<string>();
-  const unique: ResourceDraft[] = [];
-  for (const r of merged) {
-    if (seen.has(r.url)) continue;
-    seen.add(r.url);
-    unique.push(r);
-  }
-  return unique.slice(0, 8);
+  // Pool only — LearningGeneration ranks/caps to max 3 (≤1 video)
+  return [...web, ...videos.slice(0, 2)];
 }
 
 async function searchYouTube(

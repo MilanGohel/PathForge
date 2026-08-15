@@ -26,7 +26,7 @@ export async function POST(req: Request) {
 
   const { data: mod } = await supabase
     .from("modules")
-    .select("*, stages(*, paths(*)), lessons(cards)")
+    .select("*, stages(*, paths(*)), lessons(mdx, cards)")
     .eq("id", body.moduleId)
     .single();
 
@@ -45,10 +45,11 @@ export async function POST(req: Request) {
   }
 
   const lessonRel = mod.lessons as
-    | { cards: unknown }
-    | { cards: unknown }[]
+    | { mdx?: string; cards: unknown }
+    | { mdx?: string; cards: unknown }[]
     | null;
   const lesson = Array.isArray(lessonRel) ? lessonRel[0] : lessonRel;
+  const lessonMdx = (lesson?.mdx as string | undefined) ?? "";
   const cardsJson = JSON.stringify(lesson?.cards ?? [], null, 0);
 
   // Ensure thread
@@ -93,6 +94,7 @@ export async function POST(req: Request) {
       pathTitle: stage.paths.title ?? stage.paths.topic,
       stageTitle: stage.title,
       moduleTitle: mod.title,
+      lessonMdx,
       cardsJson,
       challengeMode: Boolean(body.challengeMode),
     }),

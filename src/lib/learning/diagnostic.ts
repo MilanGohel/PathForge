@@ -15,7 +15,7 @@ export function scoreDiagnostic(
 
   for (const q of questions) {
     const choice = byId.get(q.id);
-    const tag = q.skillTag ?? "general";
+    const tag = q.skillTag || "general";
     if (choice === q.correctIndex) {
       score += 1;
       if (!strengthTags.includes(tag)) strengthTags.push(tag);

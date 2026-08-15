@@ -8,6 +8,20 @@
       "when": 1786818680333,
       "tag": "0000_spicy_harrier",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1786820585630,
+      "tag": "0001_late_blizzard",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1786821696181,
+      "tag": "0002_swift_mongoose",
+      "breakpoints": true
     }
   ]
 }

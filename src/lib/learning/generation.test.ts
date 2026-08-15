@@ -44,38 +44,7 @@ function mockModels(overrides?: Partial<ModelClient>): ModelClient {
       ],
     })),
     generateL2Content: vi.fn(async () => ({
-      cards: [
-        {
-          id: "c1",
-          kind: "concept" as const,
-          title: "Concept",
-          body: "Body",
-        },
-        {
-          id: "c2",
-          kind: "why_it_matters" as const,
-          title: "Why",
-          body: "Body",
-        },
-        {
-          id: "c3",
-          kind: "example" as const,
-          title: "Example",
-          body: "Body",
-        },
-        {
-          id: "c4",
-          kind: "pitfall" as const,
-          title: "Pitfall",
-          body: "Body",
-        },
-        {
-          id: "c5",
-          kind: "try_this" as const,
-          title: "Try",
-          body: "Body",
-        },
-      ],
+      mdx: `## Why this matters\nMatters because X.\n## The idea\nCore idea here with enough depth to learn.\n## How to think about it\nMental model.\n## Worked example\nExample walkthrough.\n## Common mistake\nDon't do Y.\n## Try this\nDo Z once.`,
       quiz: [
         {
           id: "q1",
@@ -93,6 +62,7 @@ function mockModels(overrides?: Partial<ModelClient>): ModelClient {
         prompt: "P",
         choices: ["a", "b"],
         correctIndex: 0,
+        skillTag: "general",
       },
     ]),
     generateTodayBlurb: vi.fn(async () => "Ship one module today."),
@@ -148,7 +118,9 @@ describe("LearningGeneration", () => {
       moduleBlurb: "B",
     });
 
-    expect(result.cards.length).toBeGreaterThanOrEqual(4);
+    expect(result.mdx).toContain("Why this matters");
+    expect(result.cards).toEqual([]);
+    expect(result.resources.length).toBeLessThanOrEqual(3);
     expect(result.resources[0]?.url).toContain("example.com");
     expect(search.searchResources).toHaveBeenCalled();
   });

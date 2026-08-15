@@ -16,7 +16,8 @@ export type DiagnosticQuestion = {
   choices: string[];
   /** Index of the best/advanced answer; used for simple scoring */
   correctIndex: number;
-  skillTag?: string;
+  /** Always set for gateway structured output compatibility */
+  skillTag: string;
 };
 
 export type DiagnosticAnswer = {
@@ -33,6 +34,7 @@ export type DiagnosticResult = {
   gapTags: string[];
 };
 
+/** @deprecated Legacy L2 short cards — kept for old modules until regenerate */
 export type LessonCard = {
   id: string;
   kind: "concept" | "why_it_matters" | "example" | "pitfall" | "try_this";
@@ -80,10 +82,13 @@ export type L1Result = {
   modules: L1Module[];
 };
 
+/** L2 lesson: MDX body is the teach surface; cards only on legacy rows */
 export type L2Result = {
-  cards: LessonCard[];
+  mdx: string;
   quiz: QuizItem[];
   resources: ResourceDraft[];
+  /** Always empty for new gens; legacy modules may still show cards in UI */
+  cards: LessonCard[];
 };
 
 export type PackTemplate = {

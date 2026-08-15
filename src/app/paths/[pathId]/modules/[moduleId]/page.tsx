@@ -2,7 +2,9 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { requireUser } from "@/lib/supabase/server";
 import { formatMinutes } from "@/lib/utils";
+import { isLegacyLesson } from "@/lib/learning/lesson-format";
 import { EnsureL2 } from "@/components/learning/ensure-l2";
+import { LessonBody } from "@/components/learning/lesson-body";
 import {
   CompleteButton,
   NotesEditor,
@@ -19,14 +21,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import type { LessonCard } from "@/types/domain";
-
-const CARD_ORDER = [
-  "concept",
-  "why_it_matters",
-  "example",
-  "pitfall",
-  "try_this",
-] as const;
 
 export default async function ModulePage({
   params,
@@ -110,10 +104,9 @@ export default async function ModulePage({
         })) ?? [];
   }
 
+  const mdx = (lesson?.mdx as string | null) ?? "";
   const cards = (lesson?.cards as LessonCard[] | null) ?? [];
-  const sortedCards = [...cards].sort(
-    (a, b) => CARD_ORDER.indexOf(a.kind) - CARD_ORDER.indexOf(b.kind),
-  );
+  const legacy = isLegacyLesson({ mdx, cards });
 
   return (
     <div className="mx-auto max-w-3xl space-y-8 px-4 py-10">
@@ -150,31 +143,52 @@ export default async function ModulePage({
             <RegenerateModuleButton moduleId={moduleId} />
           </div>
 
+          {legacy ? (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
+              <p className="font-medium">Old short-card format</p>
+              <p className="mt-1 opacity-90">
+                This lesson was generated before full MDX teaching content.
+                Hit <strong>Regenerate lesson</strong> for a ~10–15 min
+                teachable module (uses one AI generation).
+              </p>
+            </div>
+          ) : null}
+
           <section className="space-y-4">
             <h2 className="text-lg font-semibold">Lesson</h2>
-            {sortedCards.map((card) => (
-              <Card key={card.id}>
-                <CardHeader>
-                  <CardDescription className="uppercase tracking-wide">
-                    {card.kind.replaceAll("_", " ")}
-                  </CardDescription>
-                  <CardTitle className="text-base">{card.title}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="whitespace-pre-wrap text-sm leading-relaxed text-zinc-700 dark:text-zinc-300">
-                    {card.body}
-                  </p>
-                </CardContent>
-              </Card>
-            ))}
+            {mdx.trim() ? (
+              <LessonBody source={mdx} />
+            ) : legacy ? (
+              <div className="space-y-4">
+                {cards.map((card) => (
+                  <Card key={card.id}>
+                    <CardHeader>
+                      <CardDescription className="uppercase tracking-wide">
+                        {card.kind.replaceAll("_", " ")}
+                      </CardDescription>
+                      <CardTitle className="text-base">{card.title}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="whitespace-pre-wrap text-sm leading-relaxed text-zinc-700 dark:text-zinc-300">
+                        {card.body}
+                      </p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-zinc-500">Lesson body missing.</p>
+            )}
           </section>
 
           <section className="space-y-3">
-            <h2 className="text-lg font-semibold">Resources</h2>
+            <h2 className="text-lg font-semibold">Go deeper</h2>
+            <p className="text-sm text-zinc-500">
+              Optional — the lesson above should stand on its own. At most a few
+              curated links.
+            </p>
             {(resources ?? []).length === 0 ? (
-              <p className="text-sm text-zinc-500">
-                No external resources attached for this module.
-              </p>
+              <p className="text-sm text-zinc-500">No external links for this module.</p>
             ) : (
               <ul className="space-y-2">
                 {resources!.map((r) => (

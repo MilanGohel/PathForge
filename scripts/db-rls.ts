@@ -1,19 +1,17 @@
-import { config } from "dotenv";
 import postgres from "postgres";
+import { getMigrationDatabaseUrl } from "../src/db/env";
 import { RLS_SQL } from "../src/db/rls";
 
-config({ path: ".env.local" });
-config({ path: ".env" });
-
 async function main() {
-  const url = process.env.DATABASE_URL;
-  if (!url) {
-    console.error(
-      "Missing DATABASE_URL. Add Supabase Postgres URI to .env.local first.",
-    );
+  let url: string;
+  try {
+    url = getMigrationDatabaseUrl();
+  } catch (e) {
+    console.error((e as Error).message);
     process.exit(1);
   }
 
+  // Session pooler / direct — required for multi-statement DDL + policies
   const sql = postgres(url, { prepare: false, max: 1 });
   try {
     await sql.unsafe(RLS_SQL);

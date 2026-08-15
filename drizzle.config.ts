@@ -1,13 +1,16 @@
-import { config } from "dotenv";
 import { defineConfig } from "drizzle-kit";
+import { getMigrationDatabaseUrl } from "./src/db/env";
 
-config({ path: ".env.local" });
-config({ path: ".env" });
-
-if (!process.env.DATABASE_URL) {
+let url: string;
+try {
+  url = getMigrationDatabaseUrl();
+} catch (e) {
   console.warn(
-    "[drizzle.config] DATABASE_URL is not set. Add it to .env.local (Supabase → Settings → Database → URI).",
+    `[drizzle.config] ${(e as Error).message}\n` +
+      "  DIRECT_URL = session pooler :5432 (migrations)\n" +
+      "  DATABASE_URL = transaction pooler :6543?pgbouncer=true (app)",
   );
+  url = "";
 }
 
 export default defineConfig({
@@ -15,7 +18,8 @@ export default defineConfig({
   out: "./drizzle",
   dialect: "postgresql",
   dbCredentials: {
-    url: process.env.DATABASE_URL!,
+    // Migrations must use session mode (DIRECT_URL), not transaction pooler
+    url,
   },
   strict: true,
   verbose: true,

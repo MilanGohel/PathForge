@@ -26,13 +26,15 @@ cp .env.example .env.local
 
 1. Create a project at [supabase.com](https://supabase.com)
 2. Copy **Project URL** + **anon key** into `.env.local`
-3. Copy **Database → Connection string (URI)** into `DATABASE_URL` in `.env.local`
+3. In `.env.local` set **both** pooler URLs (Supabase → Database → Connection string):
+   - `DATABASE_URL` — **Transaction** pooler `:6543` + `?pgbouncer=true` (app)
+   - `DIRECT_URL` — **Session** pooler `:5432` (migrations / RLS)
 4. Generate + apply schema (Drizzle only — never hand-write SQL migrations):
 
 ```bash
 pnpm db:generate   # schema.ts → drizzle/*.sql
-pnpm db:migrate    # apply tables
-pnpm db:rls        # RLS policies, auth trigger, pack seed
+pnpm db:migrate    # uses DIRECT_URL (session pooler)
+pnpm db:rls        # RLS policies, auth trigger, pack seed (DIRECT_URL)
 # or: pnpm db:setup   # migrate + rls
 ```
 

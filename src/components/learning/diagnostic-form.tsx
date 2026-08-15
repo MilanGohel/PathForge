@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import {
   getDiagnosticQuestions,
   submitDiagnosticAndGenerateL0,
@@ -9,6 +9,24 @@ import {
 import type { DiagnosticQuestion } from "@/types/domain";
 import { Button } from "@/components/ui/button";
 import { GenerationStatus } from "./generation-status";
+
+/** In-flight de-dupe across React Strict Mode double-mount in dev */
+const inflightByPath = new Map<
+  string,
+  Promise<Awaited<ReturnType<typeof getDiagnosticQuestions>>>
+>();
+
+function loadDiagnosticOnce(pathId: string) {
+  const existing = inflightByPath.get(pathId);
+  if (existing) return existing;
+  const p = getDiagnosticQuestions(pathId).finally(() => {
+    // Keep resolved promise briefly so a twin mount still shares the result,
+    // then drop so a true retry after error can run again.
+    setTimeout(() => inflightByPath.delete(pathId), 5_000);
+  });
+  inflightByPath.set(pathId, p);
+  return p;
+}
 
 export function DiagnosticForm({ pathId }: { pathId: string }) {
   const router = useRouter();
@@ -21,24 +39,30 @@ export function DiagnosticForm({ pathId }: { pathId: string }) {
     "load",
   );
   const [error, setError] = useState<string | null>(null);
+  const loadedFor = useRef<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
+    if (loadedFor.current === pathId && questions) return;
+
     (async () => {
-      const res = await getDiagnosticQuestions(pathId);
+      const res = await loadDiagnosticOnce(pathId);
       if (cancelled) return;
       if (!res.ok) {
         setLoadError(res.error);
         setPhase("error");
         return;
       }
+      loadedFor.current = pathId;
       setQuestions(res.data.questions);
       setFromPack(res.data.fromPack);
       setPhase("quiz");
     })();
+
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- load once per pathId
   }, [pathId]);
 
   const allAnswered = useMemo(() => {

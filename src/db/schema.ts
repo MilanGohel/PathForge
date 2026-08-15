@@ -64,6 +64,8 @@ export const paths = pgTable(
     estHours: numeric("est_hours"),
     status: text("status").notNull().default("draft"),
     domainAlert: text("domain_alert"),
+    /** Cached placement questions so Strict Mode / refresh does not re-bill the Gateway */
+    diagnosticQuestions: jsonb("diagnostic_questions"),
     diagnosticResult: jsonb("diagnostic_result"),
     l0Payload: jsonb("l0_payload"),
     isActive: boolean("is_active").notNull().default(true),
@@ -135,6 +137,9 @@ export const lessons = pgTable("lessons", {
     .notNull()
     .unique()
     .references(() => modules.id, { onDelete: "cascade" }),
+  /** Primary teach surface (MDX with fixed skeleton). Empty on legacy rows. */
+  mdx: text("mdx").notNull().default(""),
+  /** @deprecated Legacy short cards; empty for new L2 gens */
   cards: jsonb("cards").notNull().default(sql`'[]'::jsonb`),
   generatedAt: timestamp("generated_at", { withTimezone: true })
     .notNull()

@@ -77,6 +77,7 @@ export async function getDiagnosticQuestions(pathId: string): Promise<
     return { ok: false, error: "Path not found" };
   }
 
+  // Pack bank is static — free, no cache row needed
   if (path.pack_slug) {
     const pack = getPack(path.pack_slug);
     if (pack) {
@@ -87,12 +88,30 @@ export async function getDiagnosticQuestions(pathId: string): Promise<
     }
   }
 
+  // Cache hit: never re-call the Gateway for the same path's quiz
+  const cached = path.diagnostic_questions as DiagnosticQuestion[] | null;
+  if (Array.isArray(cached) && cached.length > 0) {
+    return { ok: true, data: { questions: cached, fromPack: false } };
+  }
+
   try {
     const gen = await getLearningGeneration();
     const questions = await gen.createDiagnosticQuestions(user.id, {
       topic: path.topic,
       goal: path.goal,
     });
+
+    const { error: saveErr } = await supabase
+      .from("paths")
+      .update({ diagnostic_questions: questions })
+      .eq("id", path.id)
+      .eq("user_id", user.id);
+
+    if (saveErr) {
+      // Still return questions; next load may regenerate if save failed
+      console.warn("[diagnostic] failed to cache questions", saveErr.message);
+    }
+
     return { ok: true, data: { questions, fromPack: false } };
   } catch (e) {
     const message =
@@ -329,6 +348,7 @@ export async function ensureModuleL2(
       stageTitle: stage.title,
       moduleTitle: mod.title,
       moduleBlurb: mod.blurb,
+      estMinutes: mod.est_minutes,
     });
 
     if (opts?.regenerate) {
@@ -339,7 +359,8 @@ export async function ensureModuleL2(
 
     const { error: lessonErr } = await supabase.from("lessons").upsert({
       module_id: moduleId,
-      cards: l2.cards,
+      mdx: l2.mdx,
+      cards: [],
       generated_at: new Date().toISOString(),
     });
     if (lessonErr) throw lessonErr;

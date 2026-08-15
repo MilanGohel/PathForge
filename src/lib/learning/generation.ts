@@ -1,6 +1,8 @@
-import { generateObject, generateText } from "ai";
+import { generateText } from "ai";
+import { generateStructured } from "@/lib/ai/structured";
 import { fastModel, getGateway, strongModel } from "@/lib/ai/models";
 import { env } from "@/lib/env";
+import { rankAndCapResources } from "@/lib/search/rank-resources";
 import { searchLearningResources } from "@/lib/search/serper";
 import type {
   DiagnosticQuestion,
@@ -10,6 +12,7 @@ import type {
   L1Result,
   L2Result,
 } from "@/types/domain";
+import { LESSON_SKELETON_PROMPT, sanitizeLessonMdx } from "./lesson-format";
 import {
   diagnosticQuestionsSchema,
   l0Schema,
@@ -43,8 +46,9 @@ export type ModelClient = {
     stageTitle: string;
     moduleTitle: string;
     moduleBlurb: string;
+    estMinutes?: number | null;
   }): Promise<{
-    cards: L2Result["cards"];
+    mdx: string;
     quiz: L2Result["quiz"];
     resourceQueries: string[];
   }>;
@@ -90,9 +94,10 @@ export function createGatewayModelClient(
   return {
     async generateL0({ intake, diagnostic }) {
       const gateway = getGateway();
-      const { object } = await generateObject({
+      return generateStructured({
         model: gateway(fastModel()),
         schema: l0Schema,
+        schemaName: "L0PathOutline",
         prompt: `You are Pathforge, an expert curriculum designer.
 Create a personalized learning PATH OUTLINE (stages only — no modules yet).
 
@@ -111,11 +116,11 @@ Learner placement:
 Rules:
 - 4–10 stages, ordered from foundations to applied capstone-style practice.
 - Respect placement: beginners get stronger foundations; advanced learners compress basics.
-- estHours should be realistic for a motivated self-learner.
-- domainAlert: ONLY a short practical warning if the topic truly cannot be learned well online alone (e.g. surgery, welding safety, instrument technique requiring in-person coaching). Otherwise null. Never warn for ordinary soft skills or normal online-learnable topics.
-- Do not write full lessons. Stages only.`,
+- estHours should be realistic for a motivated self-learner (JSON numbers).
+- domainAlert: ONLY a short practical warning if the topic truly cannot be learned well online alone (e.g. surgery, welding safety, instrument technique requiring in-person coaching). Otherwise JSON null. Never warn for ordinary soft skills or normal online-learnable topics.
+- Do not write full lessons. Stages only.
+- Output valid JSON matching keys: title, summary, estHours, domainAlert, stages[{title,summary,estHours}].`,
       });
-      return object;
     },
 
     async generateL1({
@@ -126,9 +131,10 @@ Rules:
       diagnostic,
     }) {
       const gateway = getGateway();
-      const { object } = await generateObject({
+      return generateStructured({
         model: gateway(fastModel()),
         schema: l1Schema,
+        schemaName: "L1StageModules",
         prompt: `You are Pathforge. Expand ONE stage into modules (titles + blurbs only).
 
 Path: ${pathTitle}
@@ -140,11 +146,11 @@ Gaps: ${diagnostic?.gapTags.join(", ") || "n/a"}
 
 Rules:
 - 3–8 modules for this stage only.
-- Each module is one sitting (15–60 minutes typical).
+- Each module is one sitting (15–60 minutes typical); estMinutes is a JSON integer.
 - Concrete titles, not vague "Introduction" spam.
-- No full lesson content yet.`,
+- No full lesson content yet.
+- Output JSON: { "modules": [ { "title", "blurb", "estMinutes" } ] }`,
       });
-      return object;
     },
 
     async generateL2Content({
@@ -153,55 +159,67 @@ Rules:
       stageTitle,
       moduleTitle,
       moduleBlurb,
+      estMinutes,
     }) {
       const gateway = getGateway();
-      const { object } = await generateObject({
+      const object = await generateStructured({
         model: gateway(strongModel()),
         schema: l2Schema,
-        prompt: `You are Pathforge. Write a short card-based lesson for ONE module.
+        schemaName: "L2Lesson",
+        prompt: `You are Pathforge. Teach ONE module so the learner can understand it from this lesson alone.
 
 Path: ${pathTitle}
 Topic: ${topic}
 Stage: ${stageTitle}
 Module: ${moduleTitle}
 Blurb: ${moduleBlurb}
+Suggested sitting time: ${estMinutes ?? 25} minutes (aim ~10–15 min focused read; do not write a thesis).
 
-Produce:
-1) 5 cards with kinds: concept, why_it_matters, example, pitfall, try_this (use those kinds).
-2) 2–4 multiple-choice quiz items with explanations (optional practice — not a gate).
-3) 1–3 short web search queries to find excellent free learning resources (docs, tutorials, reputable articles, videos).
+${LESSON_SKELETON_PROMPT}
 
-Keep card bodies tight (short paragraphs). Be accurate and practical.`,
+Return JSON only:
+{
+  "mdx": "...full MDX lesson string...",
+  "quiz": [ { "id", "prompt", "choices", "correctIndex", "explanation" } ],
+  "resourceQueries": [ "short query", "optional second" ]
+}`,
       });
-      return object;
+      return {
+        mdx: sanitizeLessonMdx(object.mdx),
+        quiz: object.quiz,
+        resourceQueries: object.resourceQueries,
+      };
     },
 
     async generateDiagnosticQuestions({ topic, goal }) {
       const gateway = getGateway();
-      const { object } = await generateObject({
+      const object = await generateStructured({
         model: gateway(fastModel()),
         schema: diagnosticQuestionsSchema,
+        schemaName: "DiagnosticQuestions",
         prompt: `Create a short placement diagnostic (5–8 multiple choice questions) for someone who wants to learn:
 
 Topic: ${topic}
 Goal: ${goal}
 
 Questions should probe prior knowledge to place them beginner/intermediate/advanced.
-Include correctIndex for the best answer. Tag skills with skillTag when useful.`,
+Each question needs: id, prompt, choices (3–5 strings), correctIndex (number), skillTag (string, e.g. "general").
+Output JSON: { "questions": [ ... ] }`,
       });
       return object.questions;
     },
 
     async generateTodayBlurb({ pathTitle, moduleTitle, moduleBlurb }) {
       const gateway = getGateway();
-      const { object } = await generateObject({
+      const object = await generateStructured({
         model: gateway(fastModel()),
         schema: todayBlurbSchema,
+        schemaName: "TodayBlurb",
         prompt: `Write one short encouraging line (max 220 chars) for today's learning focus.
 Path: ${pathTitle}
 Module: ${moduleTitle}
 About: ${moduleBlurb}
-No hashtags. No markdown.`,
+No hashtags. Output JSON: { "blurb": "..." }`,
       });
       return object.blurb;
     },
@@ -302,42 +320,35 @@ export class LearningGeneration {
       stageTitle: string;
       moduleTitle: string;
       moduleBlurb: string;
+      estMinutes?: number | null;
     },
   ): Promise<L2Result> {
     let result!: L2Result;
     await this.track(userId, "L2", moduleId, async () => {
       const content = await this.models.generateL2Content(input);
-      // Prefer model queries; fall back to module title search
       let resources: L2Result["resources"] = [];
       try {
-        const q =
-          content.resourceQueries[0] ??
-          `${input.moduleTitle} ${input.topic} tutorial`;
-        resources = await this.search.searchResources({
-          topic: q,
-          moduleTitle: input.moduleTitle,
-          blurb: input.moduleBlurb,
-        });
-        if (content.resourceQueries.length > 1) {
-          const extra = await this.search.searchResources({
-            topic: content.resourceQueries[1],
+        const queries = content.resourceQueries.length
+          ? content.resourceQueries.slice(0, 2)
+          : [`${input.moduleTitle} ${input.topic} guide`];
+        const pooled = [];
+        for (const q of queries) {
+          const batch = await this.search.searchResources({
+            topic: q,
             moduleTitle: input.moduleTitle,
+            blurb: input.moduleBlurb,
           });
-          const seen = new Set(resources.map((r) => r.url));
-          for (const r of extra) {
-            if (!seen.has(r.url)) {
-              seen.add(r.url);
-              resources.push(r);
-            }
-          }
+          pooled.push(...batch);
         }
+        resources = rankAndCapResources(pooled, { max: 3, maxVideos: 1 });
       } catch {
         resources = [];
       }
       result = {
-        cards: content.cards,
+        mdx: content.mdx,
         quiz: content.quiz,
-        resources: resources.slice(0, 8),
+        resources,
+        cards: [],
       };
     });
     return result;
@@ -379,12 +390,18 @@ export function buildTutorSystemPrompt(input: {
   pathTitle: string;
   stageTitle: string;
   moduleTitle: string;
-  cardsJson: string;
+  lessonMdx?: string;
+  cardsJson?: string;
   challengeMode?: boolean;
 }) {
   const challenge = input.challengeMode
     ? `Mode: CHALLENGE ME. Ask exactly one practice question at a time, wait for the learner answer, then briefly grade and continue with the next question only when they ask or answer.`
     : `Mode: normal tutor. Answer questions, explain simply, use Socratic hints when stuck.`;
+
+  const body =
+    input.lessonMdx && input.lessonMdx.trim().length > 0
+      ? `Lesson (MDX):\n${input.lessonMdx.slice(0, 12000)}`
+      : `Legacy lesson cards (JSON):\n${input.cardsJson ?? "[]"}`;
 
   return `You are Pathforge's module tutor. Stay strictly on this module's content unless the learner needs a tiny prerequisite clarification.
 
@@ -392,13 +409,12 @@ Path: ${input.pathTitle}
 Stage: ${input.stageTitle}
 Module: ${input.moduleTitle}
 
-Lesson cards (JSON):
-${input.cardsJson}
+${body}
 
 ${challenge}
 
 Rules:
-- Ground answers in the lesson cards.
+- Ground answers in the lesson above.
 - Keep replies concise.
 - If asked something far off-curriculum, briefly redirect to the module.`;
 }

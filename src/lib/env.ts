@@ -27,9 +27,20 @@ export const env = {
   supabaseServiceRoleKey: () => read("SUPABASE_SERVICE_ROLE_KEY"),
 
   aiGatewayApiKey: () => requireEnv("AI_GATEWAY_API_KEY"),
-  modelFast: () => read("AI_MODEL_FAST") ?? "openai/gpt-4.1-mini",
+  /**
+   * Gateway model ids: provider/model (routed by Vercel AI Gateway).
+   * Prefer AI_GATEWAY_MODEL as the default/fast model; AI_MODEL_FAST is an alias.
+   * AI_MODEL_STRONG for heavier lesson/tutor calls; falls back to the default model.
+   */
+  modelFast: () =>
+    read("AI_MODEL_FAST") ??
+    read("AI_GATEWAY_MODEL") ??
+    "xiaomi/mimo-v2.5-pro",
   modelStrong: () =>
-    read("AI_MODEL_STRONG") ?? "anthropic/claude-sonnet-4.6",
+    read("AI_MODEL_STRONG") ??
+    read("AI_GATEWAY_MODEL") ??
+    read("AI_MODEL_FAST") ??
+    "deepseek/deepseek-v4-pro-0813",
 
   serperApiKey: () => requireEnv("SERPER_API_KEY"),
   youtubeApiKey: () => read("YOUTUBE_API_KEY"),
