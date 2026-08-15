@@ -72,11 +72,11 @@ export function TutorChat({
   }
 
   return (
-    <div className="flex h-[420px] flex-col rounded-2xl border border-zinc-200 dark:border-zinc-800">
-      <div className="flex items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-zinc-800">
+    <div className="flex h-[420px] flex-col rounded-2xl border border-border bg-card">
+      <div className="flex items-center justify-between border-b border-border px-4 py-3">
         <div>
           <p className="text-sm font-semibold">Module tutor</p>
-          <p className="text-xs text-zinc-500">Grounded on this lesson only</p>
+          <p className="text-xs text-muted">Grounded on this lesson only</p>
         </div>
         <Button
           size="sm"
@@ -93,7 +93,7 @@ export function TutorChat({
       </div>
       <div className="flex-1 space-y-3 overflow-y-auto p-4">
         {messages.length === 0 ? (
-          <p className="text-sm text-zinc-500">
+          <p className="text-sm text-muted">
             Ask anything about this module, or hit Challenge me.
           </p>
         ) : null}
@@ -102,8 +102,8 @@ export function TutorChat({
             key={i}
             className={`max-w-[90%] rounded-xl px-3 py-2 text-sm ${
               m.role === "user"
-                ? "ml-auto bg-teal-600 text-white"
-                : "bg-zinc-100 dark:bg-zinc-900"
+                ? "ml-auto bg-primary text-primary-foreground"
+                : "bg-muted-bg"
             }`}
           >
             <p className="whitespace-pre-wrap">{m.content}</p>
@@ -111,9 +111,9 @@ export function TutorChat({
         ))}
       </div>
       {error ? (
-        <p className="px-4 text-xs text-red-600 dark:text-red-400">{error}</p>
+        <p className="px-4 text-xs text-danger-fg">{error}</p>
       ) : null}
-      <div className="border-t border-zinc-200 p-3 dark:border-zinc-800">
+      <div className="border-t border-border p-3">
         <div className="flex gap-2">
           <Textarea
             value={input}

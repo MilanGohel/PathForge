@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import { SiteHeader } from "@/components/site-header";
+import { Geist, Geist_Mono, Newsreader } from "next/font/google";
+import { SiteChrome } from "@/components/site-chrome";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -13,10 +13,31 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const display = Newsreader({
+  variable: "--font-display",
+  subsets: ["latin"],
+});
+
 export const metadata: Metadata = {
-  title: "Pathforge — AI learning paths",
+  title: {
+    default: "Pathforge — AI learning paths that teach",
+    template: "%s · Pathforge",
+  },
   description:
-    "Personalized learning paths with lazy AI generation, lessons, resources, and a module tutor.",
+    "Personalized learning paths with on-demand AI generation, teachable MDX lessons, curated resources, and a module tutor.",
+  openGraph: {
+    title: "Pathforge — AI learning paths that teach",
+    description:
+      "Generate a path, learn module-by-module with real lessons, and go deeper with curated resources.",
+    type: "website",
+    siteName: "Pathforge",
+  },
+  twitter: {
+    card: "summary",
+    title: "Pathforge — AI learning paths that teach",
+    description:
+      "Personalized paths, teachable MDX lessons, and a grounded module tutor.",
+  },
 };
 
 export default function RootLayout({
@@ -27,14 +48,10 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${display.variable} h-full antialiased`}
     >
-      <body className="flex min-h-full flex-col">
-        <SiteHeader />
-        <main className="flex-1">{children}</main>
-        <footer className="border-t border-zinc-200 py-6 text-center text-xs text-zinc-500 dark:border-zinc-800">
-          Pathforge — generate, guide, teach, curate
-        </footer>
+      <body className="flex min-h-full flex-col bg-background text-foreground">
+        <SiteChrome>{children}</SiteChrome>
       </body>
     </html>
   );

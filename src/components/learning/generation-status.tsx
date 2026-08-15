@@ -1,68 +1,139 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import {
+  presentGenerationProgress,
+  type GenerationPhase,
+  type ProgressFlow,
+} from "@/lib/learning/generation-progress";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
-const STEPS = [
-  "Planning curriculum structure",
-  "Personalizing for your level",
-  "Writing content",
-  "Finding resources",
-  "Saving to your path",
-] as const;
+function formatElapsed(ms: number): string {
+  const sec = Math.floor(ms / 1000);
+  if (sec < 60) return `${sec}s`;
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return s ? `${m}m ${s}s` : `${m}m`;
+}
 
 export function GenerationStatus({
-  label = "Generating",
+  phase,
+  flow,
+  errorMessage,
+  onRetry,
   className,
 }: {
-  label?: string;
+  phase: GenerationPhase;
+  flow: ProgressFlow;
+  errorMessage?: string;
+  onRetry?: () => void;
   className?: string;
 }) {
-  const [step, setStep] = useState(0);
+  const view = presentGenerationProgress({
+    phase,
+    flow,
+    errorMessage,
+  });
+  const [startedAt] = useState(() => Date.now());
+  const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
-    const id = setInterval(() => {
-      setStep((s) => (s + 1) % STEPS.length);
-    }, 2200);
+    if (!view.showElapsed) return;
+    const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
-  }, []);
+  }, [view.showElapsed]);
+
+  const headline = view.headline;
+  const isError = phase === "error";
 
   return (
     <div
       className={cn(
-        "rounded-2xl border border-teal-200 bg-teal-50/60 p-6 dark:border-teal-900 dark:bg-teal-950/30",
+        "rounded-2xl border p-6",
+        isError
+          ? "border-danger-border bg-danger-bg"
+          : "border-primary/25 bg-primary-soft/40",
         className,
       )}
+      role="status"
+      aria-live="polite"
     >
       <div className="mb-3 flex items-center gap-3">
-        <span className="relative flex h-3 w-3">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-teal-400 opacity-75" />
-          <span className="relative inline-flex h-3 w-3 rounded-full bg-teal-500" />
-        </span>
-        <p className="font-medium text-teal-900 dark:text-teal-100">{label}</p>
-      </div>
-      <ol className="space-y-2">
-        {STEPS.map((s, i) => (
-          <li
-            key={s}
+        {!isError ? (
+          <span className="relative flex h-3 w-3 shrink-0">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-60" />
+            <span className="relative inline-flex h-3 w-3 rounded-full bg-primary" />
+          </span>
+        ) : (
+          <span
+            className="inline-flex h-3 w-3 shrink-0 rounded-full bg-danger"
+            aria-hidden
+          />
+        )}
+        <div className="min-w-0 flex-1">
+          <p
             className={cn(
-              "text-sm transition-opacity",
-              i === step
-                ? "font-medium text-teal-800 opacity-100 dark:text-teal-200"
-                : i < step
-                  ? "text-teal-700/70 opacity-70 dark:text-teal-300/70"
-                  : "text-zinc-400 opacity-50",
+              "font-medium",
+              isError ? "text-danger-fg" : "text-primary-soft-fg",
             )}
           >
-            {i < step ? "✓ " : i === step ? "→ " : "○ "}
-            {s}
+            {headline}
+          </p>
+          {view.showElapsed ? (
+            <p className="mt-0.5 text-xs text-muted">
+              Elapsed {formatElapsed(now - startedAt)}
+            </p>
+          ) : null}
+        </div>
+      </div>
+
+      <ol className="space-y-2">
+        {view.steps.map((step) => (
+          <li
+            key={step.id}
+            className={cn(
+              "flex items-start gap-2 text-sm transition-opacity",
+              step.state === "active" &&
+                "font-medium text-primary-soft-fg opacity-100",
+              step.state === "done" && "text-muted opacity-80",
+              step.state === "pending" && "text-muted opacity-50",
+              step.state === "error" && "font-medium text-danger-fg",
+            )}
+          >
+            <span className="w-4 shrink-0 text-center" aria-hidden>
+              {step.state === "done"
+                ? "✓"
+                : step.state === "active"
+                  ? "→"
+                  : step.state === "error"
+                    ? "!"
+                    : "○"}
+            </span>
+            <span>{step.label}</span>
           </li>
         ))}
       </ol>
-      <p className="mt-4 text-xs text-zinc-500">
-        This can take a bit — content is streamed from the model and cached so
-        you never pay twice for the same module.
-      </p>
+
+      {isError ? (
+        <div className="mt-4 space-y-3">
+          <p className="text-sm text-danger-fg">
+            {view.errorMessage ??
+              errorMessage ??
+              "Generation failed. You can try again."}
+          </p>
+          {onRetry ? (
+            <Button type="button" size="sm" variant="outline" onClick={onRetry}>
+              Retry
+            </Button>
+          ) : null}
+        </div>
+      ) : (
+        <p className="mt-4 text-xs text-muted">
+          Content is generated once and cached — you won&apos;t pay twice for the
+          same module.
+        </p>
+      )}
     </div>
   );
 }

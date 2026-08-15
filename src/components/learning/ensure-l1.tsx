@@ -4,7 +4,6 @@ import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ensureStageL1 } from "@/lib/learning/actions";
 import { GenerationStatus } from "./generation-status";
-import { Button } from "@/components/ui/button";
 
 export function EnsureL1({
   stageId,
@@ -17,40 +16,36 @@ export function EnsureL1({
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
-  useEffect(() => {
-    if (status === "ready") return;
+  function run(regenerate = false) {
+    setError(null);
     startTransition(async () => {
-      const res = await ensureStageL1(stageId);
+      const res = await ensureStageL1(stageId, { regenerate });
       if (!res.ok) {
         setError(res.error);
         return;
       }
       router.refresh();
     });
-  }, [stageId, status, router]);
+  }
 
-  if (status === "ready" && !pending) return null;
+  useEffect(() => {
+    if (status === "ready") return;
+    run(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- auto-run once per stage open
+  }, [stageId, status]);
+
+  if (status === "ready" && !pending && !error) return null;
 
   if (error) {
     return (
-      <div className="space-y-3 rounded-xl border border-red-200 bg-red-50 p-4 dark:border-red-900 dark:bg-red-950/30">
-        <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
-        <Button
-          size="sm"
-          onClick={() => {
-            setError(null);
-            startTransition(async () => {
-              const res = await ensureStageL1(stageId, { regenerate: true });
-              if (!res.ok) setError(res.error);
-              else router.refresh();
-            });
-          }}
-        >
-          Retry
-        </Button>
-      </div>
+      <GenerationStatus
+        phase="error"
+        flow="l1"
+        errorMessage={error}
+        onRetry={() => run(true)}
+      />
     );
   }
 
-  return <GenerationStatus label="Expanding this stage into modules (L1)…" />;
+  return <GenerationStatus phase="l1_building" flow="l1" />;
 }

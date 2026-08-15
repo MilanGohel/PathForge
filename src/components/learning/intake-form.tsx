@@ -90,9 +90,7 @@ export function IntakeForm({
           />
         </div>
       </div>
-      {error ? (
-        <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
-      ) : null}
+      {error ? <p className="text-sm text-danger-fg">{error}</p> : null}
       <Button type="submit" disabled={pending} className="w-full sm:w-auto">
         {pending ? "Creating…" : "Continue to diagnostic"}
       </Button>

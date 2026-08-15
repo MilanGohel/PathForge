@@ -24,10 +24,12 @@ export default async function NewPathPage({
   const packs = listPacks();
 
   return (
-    <div className="mx-auto max-w-2xl space-y-8 px-4 py-10">
+    <div className="mx-auto max-w-2xl space-y-8 px-4 py-8 sm:py-10">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">New learning path</h1>
-        <p className="text-sm text-zinc-500">
+        <h1 className="text-2xl font-semibold tracking-tight">
+          New learning path
+        </h1>
+        <p className="text-sm text-muted">
           Tell us what you want to learn. We&apos;ll place you, then forge stages
           on demand.
         </p>
@@ -35,15 +37,15 @@ export default async function NewPathPage({
 
       {!pack ? (
         <div className="space-y-3">
-          <h2 className="text-sm font-medium text-zinc-500">Suggested pack</h2>
+          <h2 className="text-sm font-medium text-muted">Suggested pack</h2>
           {packs.map((p) => (
             <Link
               key={p.slug}
               href={`/paths/new?pack=${p.slug}`}
-              className="block rounded-xl border border-zinc-200 p-4 hover:border-teal-400 dark:border-zinc-800"
+              className="block rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary/40"
             >
               <p className="font-medium">{p.title}</p>
-              <p className="text-sm text-zinc-500">{p.description}</p>
+              <p className="text-sm text-muted">{p.description}</p>
             </Link>
           ))}
         </div>

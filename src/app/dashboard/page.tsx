@@ -64,41 +64,37 @@ export default async function DashboardPage() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-8 px-4 py-10">
+    <div className="mx-auto max-w-5xl space-y-8 px-4 py-8 sm:py-10">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
-          <p className="text-sm text-zinc-500">
-            Signed in as {user.email}
-          </p>
+          <p className="text-sm text-muted">Signed in as {user.email}</p>
         </div>
         <Link
           href="/paths/new"
-          className="inline-flex h-10 items-center rounded-lg bg-teal-600 px-4 text-sm font-medium text-white hover:bg-teal-500"
+          className="inline-flex h-10 items-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary-hover"
         >
           New path
         </Link>
       </div>
 
       {active ? (
-        <Card className="border-teal-200 dark:border-teal-900">
+        <Card className="border-primary/25">
           <CardHeader>
             <div className="flex flex-wrap items-center gap-2">
               <CardTitle>{active.title ?? active.topic}</CardTitle>
               <Badge>Active</Badge>
-              <Badge className="bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200">
-                {active.status}
-              </Badge>
+              <Badge variant="neutral">{active.status}</Badge>
             </div>
             <CardDescription>{active.summary ?? active.goal}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {active.domain_alert ? (
-              <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
+              <div className="rounded-xl border border-warning-border bg-warning-bg px-4 py-3 text-sm text-warning-fg">
                 {active.domain_alert}
               </div>
             ) : null}
-            <div className="flex flex-wrap gap-4 text-sm text-zinc-600 dark:text-zinc-400">
+            <div className="flex flex-wrap gap-4 text-sm text-muted">
               <span>~{formatHours(Number(active.est_hours))} total</span>
               <span>
                 {progress.done}/{progress.total || "—"} modules complete
@@ -106,12 +102,12 @@ export default async function DashboardPage() {
               <span>{active.hours_per_week}h / week</span>
             </div>
             {today ? (
-              <div className="rounded-xl bg-zinc-50 p-4 dark:bg-zinc-900">
-                <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+              <div className="rounded-xl border border-border bg-muted-bg/50 p-4">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted">
                   Today
                 </p>
                 <p className="mt-1 font-medium">{today.title}</p>
-                <p className="text-sm text-zinc-500">
+                <p className="text-sm text-muted">
                   {today.stageTitle}
                   {today.estMinutes
                     ? ` · ${formatMinutes(today.estMinutes)}`
@@ -119,13 +115,13 @@ export default async function DashboardPage() {
                 </p>
                 <Link
                   href={`/paths/${active.id}/modules/${today.id}`}
-                  className="mt-3 inline-flex h-9 items-center rounded-lg bg-teal-600 px-3 text-sm font-medium text-white hover:bg-teal-500"
+                  className="mt-3 inline-flex h-9 items-center rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground hover:bg-primary-hover"
                 >
                   Continue
                 </Link>
               </div>
             ) : active.status === "ready" ? (
-              <p className="text-sm text-zinc-500">
+              <p className="text-sm text-muted">
                 {progress.total > 0 && progress.done === progress.total
                   ? "All generated modules complete. Open a stage to expand more, or start a new path."
                   : "Open a stage to generate modules, then your Today card will appear."}
@@ -134,14 +130,14 @@ export default async function DashboardPage() {
               active.status === "generating_l0" ? (
               <Link
                 href={`/paths/${active.id}/diagnostic`}
-                className="inline-flex text-sm font-medium text-teal-700 dark:text-teal-300"
+                className="inline-flex text-sm font-medium text-primary hover:underline"
               >
                 Finish diagnostic →
               </Link>
             ) : null}
             <Link
               href={`/paths/${active.id}`}
-              className="inline-flex text-sm font-medium text-teal-700 dark:text-teal-300"
+              className="inline-flex text-sm font-medium text-primary hover:underline"
             >
               Open path overview →
             </Link>
@@ -152,15 +148,22 @@ export default async function DashboardPage() {
           <CardHeader>
             <CardTitle>No paths yet</CardTitle>
             <CardDescription>
-              Start from the AI Engineering pack or type any topic.
+              Start from the AI Engineering pack or type any topic. Your Today
+              card and path overview will show up here.
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex flex-wrap gap-3">
+            <Link
+              href="/paths/new?pack=ai-engineering"
+              className="inline-flex h-10 items-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary-hover"
+            >
+              Start AI Engineering
+            </Link>
             <Link
               href="/paths/new"
-              className="inline-flex h-10 items-center rounded-lg bg-teal-600 px-4 text-sm font-medium text-white hover:bg-teal-500"
+              className="inline-flex h-10 items-center rounded-lg border border-border px-4 text-sm font-medium hover:bg-muted-bg"
             >
-              Create your first path
+              Custom topic
             </Link>
           </CardContent>
         </Card>
@@ -168,12 +171,14 @@ export default async function DashboardPage() {
 
       {paths && paths.length > 0 ? (
         <section>
-          <h2 className="mb-3 text-lg font-semibold">All paths</h2>
+          <h2 className="mb-3 text-lg font-semibold tracking-tight">
+            All paths
+          </h2>
           <ul className="space-y-2">
             {paths.map((p) => (
               <li
                 key={p.id}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-zinc-200 px-4 py-3 dark:border-zinc-800"
+                className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-card px-4 py-3"
               >
                 <div>
                   <Link
@@ -186,7 +191,7 @@ export default async function DashboardPage() {
                   >
                     {p.title ?? p.topic}
                   </Link>
-                  <p className="text-xs text-zinc-500">
+                  <p className="text-xs text-muted">
                     {p.source}
                     {p.pack_slug ? ` · ${p.pack_slug}` : ""} · {p.status}
                   </p>
@@ -200,7 +205,7 @@ export default async function DashboardPage() {
                   >
                     <button
                       type="submit"
-                      className="text-xs font-medium text-teal-700 dark:text-teal-300"
+                      className="text-xs font-medium text-primary hover:underline"
                     >
                       Set active
                     </button>

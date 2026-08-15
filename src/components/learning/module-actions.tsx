@@ -59,7 +59,7 @@ export function RegenerateModuleButton({ moduleId }: { moduleId: string }) {
       >
         {pending ? "Regenerating…" : "Regenerate lesson"}
       </Button>
-      {error ? <p className="text-xs text-red-600">{error}</p> : null}
+      {error ? <p className="text-xs text-danger-fg">{error}</p> : null}
     </div>
   );
 }
@@ -120,8 +120,8 @@ export function QuizBlock({
 
   return (
     <div className="space-y-4">
-      <h3 className="text-base font-semibold">Optional check</h3>
-      <p className="text-sm text-zinc-500">
+      <h3 className="text-base font-semibold tracking-tight">Optional check</h3>
+      <p className="text-sm text-muted">
         Practice only — you can mark the module complete without this.
       </p>
       {items.map((item) => {
@@ -129,7 +129,7 @@ export function QuizBlock({
         return (
           <div
             key={item.id}
-            className="rounded-xl border border-zinc-200 p-4 dark:border-zinc-800"
+            className="rounded-xl border border-border bg-card p-4"
           >
             <p className="mb-3 text-sm font-medium">{item.prompt}</p>
             <div className="space-y-2">
@@ -138,7 +138,7 @@ export function QuizBlock({
                   key={i}
                   type="button"
                   disabled={!!result || pendingId === item.id}
-                  className="block w-full rounded-lg border border-zinc-200 px-3 py-2 text-left text-sm hover:bg-zinc-50 disabled:opacity-70 dark:border-zinc-800 dark:hover:bg-zinc-900"
+                  className="block w-full rounded-lg border border-border px-3 py-2 text-left text-sm hover:bg-muted-bg disabled:opacity-70"
                   onClick={async () => {
                     setPendingId(item.id);
                     const res = await submitQuizAnswer({
@@ -164,7 +164,7 @@ export function QuizBlock({
             </div>
             {result ? (
               <p
-                className={`mt-3 text-sm ${result.isCorrect ? "text-teal-700 dark:text-teal-300" : "text-amber-700 dark:text-amber-300"}`}
+                className={`mt-3 text-sm ${result.isCorrect ? "text-primary" : "text-warning-fg"}`}
               >
                 {result.isCorrect ? "Correct. " : "Not quite. "}
                 {result.explanation}

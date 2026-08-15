@@ -6,6 +6,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { BrandMark } from "@/components/brand-mark";
 
 export default async function LoginPage({
   searchParams,
@@ -16,37 +17,27 @@ export default async function LoginPage({
 
   return (
     <div className="mx-auto flex max-w-md flex-col px-4 py-16">
+      <div className="mb-8 flex flex-col items-center text-center">
+        <BrandMark />
+        <p className="mt-3 text-sm text-muted">Welcome back</p>
+      </div>
       <Card>
         <CardHeader>
           <CardTitle>Sign in to Pathforge</CardTitle>
           <CardDescription>
-            Production auth via Supabase — Google or GitHub.
+            Continue with Google or GitHub to save paths, progress, and notes.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {params.error ? (
-            <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-200">
+            <p className="rounded-lg border border-danger-border bg-danger-bg px-3 py-2 text-sm text-danger-fg">
               {params.error}
             </p>
           ) : null}
           <LoginButtons next={params.next ?? "/dashboard"} />
-          <p className="text-xs text-zinc-500">
-            Configure OAuth providers in your Supabase project and set{" "}
-            <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-900">
-              NEXT_PUBLIC_SUPABASE_URL
-            </code>{" "}
-            +{" "}
-            <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-900">
-              NEXT_PUBLIC_SUPABASE_ANON_KEY
-            </code>{" "}
-            in{" "}
-            <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-900">
-              .env.local
-            </code>
-            . Callback URL:{" "}
-            <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-900">
-              {"{SITE}/auth/callback"}
-            </code>
+          <p className="text-xs leading-relaxed text-muted">
+            Use Google or GitHub via Supabase Auth. After sign-in you&apos;ll
+            land on your dashboard (or the page you were heading to).
           </p>
         </CardContent>
       </Card>

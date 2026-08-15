@@ -7,6 +7,7 @@ import {
   submitDiagnosticAndGenerateL0,
 } from "@/lib/learning/actions";
 import type { DiagnosticQuestion } from "@/types/domain";
+import type { GenerationPhase } from "@/lib/learning/generation-progress";
 import { Button } from "@/components/ui/button";
 import { GenerationStatus } from "./generation-status";
 
@@ -20,8 +21,6 @@ function loadDiagnosticOnce(pathId: string) {
   const existing = inflightByPath.get(pathId);
   if (existing) return existing;
   const p = getDiagnosticQuestions(pathId).finally(() => {
-    // Keep resolved promise briefly so a twin mount still shares the result,
-    // then drop so a true retry after error can run again.
     setTimeout(() => inflightByPath.delete(pathId), 5_000);
   });
   inflightByPath.set(pathId, p);
@@ -35,28 +34,46 @@ export function DiagnosticForm({ pathId }: { pathId: string }) {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [pending, startTransition] = useTransition();
-  const [phase, setPhase] = useState<"load" | "quiz" | "generating" | "error">(
-    "load",
+  /** Product phases for honest progress UI */
+  const [genPhase, setGenPhase] = useState<GenerationPhase | "quiz">(
+    "diagnostic_loading",
   );
   const [error, setError] = useState<string | null>(null);
   const loadedFor = useRef<string | null>(null);
+
+  async function fetchQuestions() {
+    setLoadError(null);
+    setError(null);
+    setGenPhase("diagnostic_loading");
+    const res = await loadDiagnosticOnce(pathId);
+    if (!res.ok) {
+      setLoadError(res.error);
+      setGenPhase("error");
+      return false;
+    }
+    loadedFor.current = pathId;
+    setQuestions(res.data.questions);
+    setFromPack(res.data.fromPack);
+    setGenPhase("quiz");
+    return true;
+  }
 
   useEffect(() => {
     let cancelled = false;
     if (loadedFor.current === pathId && questions) return;
 
-    (async () => {
+    void (async () => {
       const res = await loadDiagnosticOnce(pathId);
       if (cancelled) return;
       if (!res.ok) {
         setLoadError(res.error);
-        setPhase("error");
+        setGenPhase("error");
         return;
       }
       loadedFor.current = pathId;
       setQuestions(res.data.questions);
       setFromPack(res.data.fromPack);
-      setPhase("quiz");
+      setGenPhase("quiz");
     })();
 
     return () => {
@@ -73,7 +90,8 @@ export function DiagnosticForm({ pathId }: { pathId: string }) {
   function onSubmit() {
     if (!questions) return;
     setError(null);
-    setPhase("generating");
+    // Single server call does score + L0; show the long wait as L0 building.
+    setGenPhase("l0_building");
     startTransition(async () => {
       const res = await submitDiagnosticAndGenerateL0({
         pathId,
@@ -85,35 +103,47 @@ export function DiagnosticForm({ pathId }: { pathId: string }) {
       });
       if (!res.ok) {
         setError(res.error);
-        setPhase("error");
+        setGenPhase("error");
         return;
       }
+      setGenPhase("l0_ready");
       router.push(`/paths/${res.data.pathId}`);
       router.refresh();
     });
   }
 
-  if (phase === "load") {
-    return <GenerationStatus label="Preparing your diagnostic…" />;
+  function retryLoad() {
+    loadedFor.current = null;
+    inflightByPath.delete(pathId);
+    void fetchQuestions();
   }
 
-  if (phase === "generating" || pending) {
+  if (genPhase === "diagnostic_loading") {
     return (
-      <GenerationStatus label="Building your personalized path outline (L0)…" />
+      <GenerationStatus phase="diagnostic_loading" flow="diagnostic_load" />
     );
   }
 
-  if (phase === "error" && !questions) {
+  if (genPhase === "l0_building" || (pending && genPhase !== "error")) {
     return (
-      <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
-        {loadError ?? error ?? "Something went wrong."}
-      </div>
+      <GenerationStatus phase="l0_building" flow="diagnostic_submit" />
+    );
+  }
+
+  if (genPhase === "error" && !questions) {
+    return (
+      <GenerationStatus
+        phase="error"
+        flow="diagnostic_load"
+        errorMessage={loadError ?? error ?? "Something went wrong."}
+        onRetry={retryLoad}
+      />
     );
   }
 
   return (
     <div className="space-y-6">
-      <p className="text-sm text-zinc-500">
+      <p className="text-sm text-muted">
         {fromPack
           ? "Pack diagnostic — stable placement questions for AI Engineering."
           : "Generated diagnostic — tailored to your topic."}{" "}
@@ -123,7 +153,7 @@ export function DiagnosticForm({ pathId }: { pathId: string }) {
         {questions?.map((q, qi) => (
           <fieldset
             key={q.id}
-            className="rounded-2xl border border-zinc-200 p-4 dark:border-zinc-800"
+            className="rounded-2xl border border-border bg-card p-4"
           >
             <legend className="px-1 text-sm font-medium">
               {qi + 1}. {q.prompt}
@@ -132,12 +162,12 @@ export function DiagnosticForm({ pathId }: { pathId: string }) {
               {q.choices.map((c, ci) => (
                 <label
                   key={ci}
-                  className="flex cursor-pointer items-start gap-3 rounded-lg border border-transparent px-3 py-2 hover:bg-zinc-50 dark:hover:bg-zinc-900"
+                  className="flex cursor-pointer items-start gap-3 rounded-lg border border-transparent px-3 py-2 hover:bg-muted-bg"
                 >
                   <input
                     type="radio"
                     name={q.id}
-                    className="mt-1"
+                    className="mt-1 accent-[var(--primary)]"
                     checked={answers[q.id] === ci}
                     onChange={() =>
                       setAnswers((prev) => ({ ...prev, [q.id]: ci }))
@@ -150,12 +180,18 @@ export function DiagnosticForm({ pathId }: { pathId: string }) {
           </fieldset>
         ))}
       </div>
-      {error ? (
-        <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
-      ) : null}
-      <Button disabled={!allAnswered || pending} onClick={onSubmit}>
-        Generate my path
-      </Button>
+      {genPhase === "error" && questions ? (
+        <GenerationStatus
+          phase="error"
+          flow="diagnostic_submit"
+          errorMessage={error ?? "Something went wrong."}
+          onRetry={onSubmit}
+        />
+      ) : (
+        <Button disabled={!allAnswered || pending} onClick={onSubmit}>
+          Generate my path
+        </Button>
+      )}
     </div>
   );
 }

@@ -26,19 +26,20 @@ export default async function DiagnosticPage({
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6 px-4 py-10">
+    <div className="mx-auto max-w-2xl space-y-6 px-4 py-8 sm:py-10">
       <div>
         <Link
           href="/dashboard"
-          className="text-sm text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200"
+          className="text-sm text-muted hover:text-foreground"
         >
           ← Dashboard
         </Link>
         <h1 className="mt-2 text-2xl font-semibold tracking-tight">
           Placement diagnostic
         </h1>
-        <p className="text-sm text-zinc-500">
-          Topic: <span className="font-medium text-zinc-800 dark:text-zinc-200">{path.topic}</span>
+        <p className="mt-1 text-sm text-muted">
+          Topic:{" "}
+          <span className="font-medium text-foreground">{path.topic}</span>
           {" · "}
           Goal: {path.goal}
         </p>
