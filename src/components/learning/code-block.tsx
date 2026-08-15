@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import {
   Children,
   isValidElement,
@@ -8,7 +9,22 @@ import {
   type ReactNode,
 } from "react";
 import { cn } from "@/lib/utils";
-import { MermaidBlock } from "./mermaid-block";
+
+const MermaidBlock = dynamic(
+  () =>
+    import("./mermaid-block").then((m) => m.MermaidBlock),
+  {
+    ssr: false,
+    loading: () => (
+      <div
+        className="my-4 min-h-[4rem] rounded-xl border border-border bg-muted-bg/50 px-4 py-6 text-center text-sm text-muted"
+        aria-busy="true"
+      >
+        Loading diagram…
+      </div>
+    ),
+  },
+);
 
 function extractText(node: ReactNode): string {
   if (node == null || typeof node === "boolean") return "";
