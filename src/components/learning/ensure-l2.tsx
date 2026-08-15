@@ -7,6 +7,8 @@ import { GenerationStatus } from "./generation-status";
 const POLL_MS = 2000;
 /** ~5 minutes of polling before we surface a soft timeout. */
 const MAX_POLLS = 150;
+/** Hold the 100% bar beat before RSC refresh swaps in the lesson. */
+const COMPLETE_HOLD_MS = 550;
 
 type EnsureResponse = {
   ok?: boolean;
@@ -50,13 +52,9 @@ async function pollStatus(moduleId: string): Promise<EnsureResponse> {
   return body;
 }
 
-function sleep(ms: number, signal?: { cancelled: boolean }) {
+function sleep(ms: number) {
   return new Promise<void>((resolve) => {
-    const id = setTimeout(resolve, ms);
-    if (signal?.cancelled) {
-      clearTimeout(id);
-      resolve();
-    }
+    setTimeout(resolve, ms);
   });
 }
 
@@ -75,11 +73,15 @@ export function EnsureL2({
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(status !== "ready");
+  const [complete, setComplete] = useState(false);
   const runIdRef = useRef(0);
 
-  const settleOnReady = useCallback(() => {
-    setBusy(false);
+  const settleOnReady = useCallback(async () => {
+    setComplete(true);
     setError(null);
+    // Let the soft bar hit 100% and show the done line before refresh
+    await sleep(COMPLETE_HOLD_MS);
+    setBusy(false);
     router.refresh();
   }, [router]);
 
@@ -89,6 +91,7 @@ export function EnsureL2({
       const alive = () => runIdRef.current === runId;
 
       setError(null);
+      setComplete(false);
       setBusy(true);
 
       // Start generation without blocking the poll loop on the full POST body.
@@ -96,7 +99,7 @@ export function EnsureL2({
       void postEnsure(moduleId, { regenerate }).then(async (res) => {
         if (!alive()) return;
         if (res.status === "ready") {
-          settleOnReady();
+          await settleOnReady();
           return;
         }
         // Hard failure only if DB is not still generating
@@ -104,7 +107,7 @@ export function EnsureL2({
           const st = await pollStatus(moduleId);
           if (!alive()) return;
           if (st.status === "ready") {
-            settleOnReady();
+            await settleOnReady();
             return;
           }
           if (st.status === "generating") return; // poll loop continues
@@ -123,7 +126,7 @@ export function EnsureL2({
           const st = await pollStatus(moduleId);
           if (!alive()) return;
           if (st.status === "ready") {
-            settleOnReady();
+            await settleOnReady();
             return;
           }
           if (st.status === "error") {
@@ -149,6 +152,7 @@ export function EnsureL2({
     if (status === "ready") {
       setBusy(false);
       setError(null);
+      setComplete(false);
       return;
     }
     void runEnsure(false);
@@ -171,5 +175,7 @@ export function EnsureL2({
     );
   }
 
-  return <GenerationStatus phase="l2_building" flow="l2" />;
+  return (
+    <GenerationStatus phase="l2_building" flow="l2" complete={complete} />
+  );
 }

@@ -6,6 +6,13 @@ import {
   type GenerationPhase,
   type ProgressFlow,
 } from "@/lib/learning/generation-progress";
+import {
+  expectedMsForFlow,
+  presentWaitMessage,
+  presentWaitPercent,
+  waitMessagesForFlow,
+  WAIT_MESSAGE_INTERVAL_MS,
+} from "@/lib/learning/wait-progress";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
@@ -23,12 +30,15 @@ export function GenerationStatus({
   errorMessage,
   onRetry,
   className,
+  /** Flip true when the underlying job finished so the bar can complete. */
+  complete = false,
 }: {
   phase: GenerationPhase;
   flow: ProgressFlow;
   errorMessage?: string;
   onRetry?: () => void;
   className?: string;
+  complete?: boolean;
 }) {
   const view = presentGenerationProgress({
     phase,
@@ -37,15 +47,44 @@ export function GenerationStatus({
   });
   const [startedAt] = useState(() => Date.now());
   const [now, setNow] = useState(() => Date.now());
+  const [finishing, setFinishing] = useState(false);
+
+  const isError = phase === "error";
+  const isWorking = !isError && !phase.endsWith("_ready") && !complete;
+  const showSoftWait = isWorking || finishing || complete;
 
   useEffect(() => {
-    if (!view.showElapsed) return;
-    const id = setInterval(() => setNow(Date.now()), 1000);
+    if (!showSoftWait && !view.showElapsed) return;
+    const id = setInterval(() => setNow(Date.now()), 250);
     return () => clearInterval(id);
-  }, [view.showElapsed]);
+  }, [showSoftWait, view.showElapsed]);
+
+  // When parent signals complete, hold a brief "fill to 100%" beat
+  useEffect(() => {
+    if (!complete) {
+      setFinishing(false);
+      return;
+    }
+    setFinishing(true);
+    const id = window.setTimeout(() => setFinishing(false), 450);
+    return () => window.clearTimeout(id);
+  }, [complete]);
+
+  const elapsedMs = now - startedAt;
+  const messages = waitMessagesForFlow(flow);
+  const waitLine = presentWaitMessage({
+    messages,
+    elapsedMs,
+    intervalMs: WAIT_MESSAGE_INTERVAL_MS,
+    complete: complete || finishing,
+  });
+  const percent = presentWaitPercent({
+    elapsedMs,
+    expectedMs: expectedMsForFlow(flow),
+    complete: complete || finishing,
+  });
 
   const headline = view.headline;
-  const isError = phase === "error";
 
   return (
     <div
@@ -80,13 +119,39 @@ export function GenerationStatus({
           >
             {headline}
           </p>
-          {view.showElapsed ? (
+          {view.showElapsed || showSoftWait ? (
             <p className="mt-0.5 text-xs text-muted">
-              Elapsed {formatElapsed(now - startedAt)}
+              Elapsed {formatElapsed(elapsedMs)}
             </p>
           ) : null}
         </div>
       </div>
+
+      {/* Soft progress + rotating messages for long waits */}
+      {showSoftWait && !isError ? (
+        <div className="mb-5 space-y-3">
+          <div
+            className="h-2 overflow-hidden rounded-full bg-background/70"
+            aria-hidden
+          >
+            <div
+              className="h-full rounded-full bg-primary transition-[width] duration-500 ease-out"
+              style={{ width: `${percent}%` }}
+            />
+          </div>
+          <div className="flex items-start justify-between gap-3">
+            <p
+              key={waitLine}
+              className="min-h-[2.5rem] flex-1 text-sm leading-relaxed text-primary-soft-fg animate-fade-up"
+            >
+              {waitLine}
+            </p>
+            <span className="shrink-0 text-xs font-medium tabular-nums text-muted">
+              {percent}%
+            </span>
+          </div>
+        </div>
+      ) : null}
 
       <ol className="space-y-2">
         {view.steps.map((step) => (
@@ -130,8 +195,7 @@ export function GenerationStatus({
         </div>
       ) : (
         <p className="mt-4 text-xs text-muted">
-          Content is generated once and cached — you won&apos;t pay twice for the
-          same module.
+          Hang tight — good lessons take a moment. You can leave this tab open.
         </p>
       )}
     </div>
