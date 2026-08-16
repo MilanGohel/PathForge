@@ -24,15 +24,19 @@ export const metadata: Metadata = {
     process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
   ),
   title: {
-    default: "Pathforge — AI learning paths that teach",
+    default: "Pathforge — Your personal curriculum, forged for how you learn",
     template: "%s · Pathforge",
   },
   description:
-    "Personalized learning paths with on-demand AI generation, teachable MDX lessons, curated resources, and a module tutor.",
+    "Pathforge builds a staged learning roadmap for anything you want to learn, then teaches you one module at a time with real lessons, progress, and a module tutor.",
+  icons: {
+    icon: [{ url: "/favicon.png", type: "image/png" }],
+    apple: [{ url: "/pathforge-mark.png" }],
+  },
   openGraph: {
-    title: "Pathforge — AI learning paths that teach",
+    title: "Pathforge — Your personal curriculum, forged for how you learn",
     description:
-      "Generate a path, learn module-by-module with real lessons, and go deeper with curated resources.",
+      "AI learning paths that teach: staged roadmaps, real module lessons, and a tutor that stays on topic.",
     type: "website",
     siteName: "Pathforge",
     images: [
@@ -46,9 +50,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Pathforge — AI learning paths that teach",
+    title: "Pathforge — Your personal curriculum, forged for how you learn",
     description:
-      "Personalized paths, teachable MDX lessons, and a grounded module tutor.",
+      "Staged roadmaps, real module lessons, and a tutor that stays on topic.",
     images: ["/og.svg"],
   },
 };
