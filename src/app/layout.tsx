@@ -30,8 +30,14 @@ export const metadata: Metadata = {
   description:
     "Pathforge builds a staged learning roadmap for anything you want to learn, then teaches you one module at a time with real lessons, progress, and a module tutor.",
   icons: {
-    icon: [{ url: "/favicon.png", type: "image/png" }],
-    apple: [{ url: "/pathforge-mark.png" }],
+    icon: [
+      { url: "/favicon.ico", sizes: "48x48" },
+      { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon.png", sizes: "64x64", type: "image/png" },
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
   },
   openGraph: {
     title: "Pathforge — Your personal curriculum, forged for how you learn",
